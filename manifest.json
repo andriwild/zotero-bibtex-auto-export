@@ -1,9 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Zotero BibTeX Auto-Export",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Automatically exports the Zotero library to a bibliography file (BibTeX, BibLaTeX, RIS, CSV, EndNote XML, CSL JSON) whenever items are added.",
   "author": "andriwild",
+  "icons": {
+    "48": "chrome/content/icon.svg",
+    "96": "chrome/content/icon.svg"
+  },
   "applications": {
     "zotero": {
       "id": "bibtex-auto-export@andriwild.github.io",

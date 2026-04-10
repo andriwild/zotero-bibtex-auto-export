@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C62828"/>
+      <stop offset="100%" stop-color="#8E0000"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFD54F"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="2" y="2" width="44" height="44" rx="10" ry="10" fill="url(#bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="10" ry="10" fill="none" stroke="#000" stroke-opacity="0.12" stroke-width="0.5"/>
+
+  <!-- Z formed by a lightning bolt shape — the Z IS the bolt -->
+  <polygon points="
+    15,10
+    33,10
+    18,22
+    30,22
+    13,40
+    22,26
+    12,26
+  " fill="url(#bolt)"/>
+
+  <!-- Subtle highlight/shine on bolt -->
+  <polygon points="
+    15,10
+    33,10
+    18,22
+    30,22
+    13,40
+    22,26
+    12,26
+  " fill="url(#bolt)" stroke="#FFF" stroke-opacity="0.25" stroke-width="0.5"/>
+
+  <!-- Inner bright edge for depth -->
+  <polygon points="
+    17,12
+    31,12
+    19,22
+    28,22
+    16,36
+    22,26
+    14,26
+  " fill="#FFE082" fill-opacity="0.35"/>
+</svg>

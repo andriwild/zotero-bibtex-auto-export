@@ -1,0 +1,72 @@
+<vbox id="zotero-prefpane-bibtex-auto-export"
+      xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <groupbox>
+    <label><html:h2 data-i18n="prefs.section.target">Target</html:h2></label>
+
+    <vbox>
+      <hbox align="center">
+        <label data-i18n="prefs.label.exportPath" value="Export file:"/>
+        <html:input type="text"
+                    id="bae-export-path"
+                    preference="extensions.bibtex-auto-export.exportPath"
+                    readonly="readonly"
+                    style="flex: 1; min-width: 240px;"/>
+        <button id="bae-browse"
+                data-i18n="prefs.button.browse"
+                label="Browse…"
+                oncommand="Zotero.BibTeXAutoExport.prefsBrowseExportPath(event)"/>
+      </hbox>
+
+      <hbox align="center">
+        <label data-i18n="prefs.label.exportFormat" value="Format:"/>
+        <menulist id="bae-export-format"
+                  oncommand="Zotero.BibTeXAutoExport.prefsFormatChanged(event)">
+          <menupopup>
+            <menuitem value="bibtex"   data-i18n="prefs.format.bibtex"   label="BibTeX"/>
+            <menuitem value="biblatex" data-i18n="prefs.format.biblatex" label="BibLaTeX"/>
+            <menuitem value="ris"      data-i18n="prefs.format.ris"      label="RIS"/>
+            <menuitem value="csv"      data-i18n="prefs.format.csv"      label="CSV"/>
+            <menuitem value="endnote"  data-i18n="prefs.format.endnote"  label="EndNote XML"/>
+            <menuitem value="json"     data-i18n="prefs.format.json"     label="CSL JSON"/>
+          </menupopup>
+        </menulist>
+      </hbox>
+    </vbox>
+  </groupbox>
+
+  <groupbox>
+    <label><html:h2 data-i18n="prefs.section.behavior">Behavior</html:h2></label>
+
+    <checkbox id="bae-auto-export"
+              preference="extensions.bibtex-auto-export.autoExport"
+              data-i18n="prefs.label.autoExport"
+              label="Export automatically when items are added"/>
+
+    <description data-i18n="prefs.hint.autoExport" style="opacity: 0.7; font-size: 11px; margin-left: 22px;">
+      When enabled, the file is rewritten a short moment after each new item is added to the library.
+    </description>
+
+    <hbox align="center" style="margin-top: 6px;">
+      <label data-i18n="prefs.label.exportDelay" value="Debounce delay (ms):"/>
+      <html:input type="number"
+                  id="bae-export-delay"
+                  preference="extensions.bibtex-auto-export.exportDelay"
+                  min="0"
+                  step="100"
+                  style="width: 100px;"/>
+    </hbox>
+  </groupbox>
+
+  <groupbox>
+    <label><html:h2 data-i18n="prefs.section.actions">Actions</html:h2></label>
+    <hbox>
+      <button id="bae-export-now"
+              data-i18n="prefs.button.exportNow"
+              label="Export Now"
+              oncommand="Zotero.BibTeXAutoExport.prefsExportNow(event)"/>
+    </hbox>
+  </groupbox>
+
+</vbox>

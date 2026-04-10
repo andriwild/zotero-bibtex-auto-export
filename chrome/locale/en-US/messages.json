@@ -1,0 +1,34 @@
+{
+  "menu.mainLabel": "BibTeX Auto-Export",
+  "menu.exportNow": "Export Now",
+  "menu.openPreferences": "Preferences…",
+
+  "notify.exportComplete": "{count} entries exported",
+  "notify.exportCompleteTitle": "Export Complete",
+  "notify.exportFailedTitle": "Export Failed",
+  "notify.pathRequiredTitle": "Export Path Required",
+  "notify.pathRequiredBody": "Open Preferences and pick a target file.",
+
+  "error.noContent": "Export produced no content",
+  "error.noContentToSave": "No content to save",
+
+  "prefs.title": "BibTeX Auto-Export",
+  "prefs.section.target": "Target",
+  "prefs.section.behavior": "Behavior",
+  "prefs.section.actions": "Actions",
+  "prefs.label.exportPath": "Export file:",
+  "prefs.label.exportFormat": "Format:",
+  "prefs.label.autoExport": "Export automatically when items are added",
+  "prefs.label.exportDelay": "Debounce delay (ms):",
+  "prefs.button.browse": "Browse…",
+  "prefs.button.exportNow": "Export Now",
+  "prefs.hint.pathUnset": "(no file selected)",
+  "prefs.hint.autoExport": "When enabled, the file is rewritten a short moment after each new item is added to the library.",
+  "prefs.format.bibtex": "BibTeX",
+  "prefs.format.biblatex": "BibLaTeX",
+  "prefs.format.ris": "RIS",
+  "prefs.format.csv": "CSV",
+  "prefs.format.endnote": "EndNote XML",
+  "prefs.format.json": "CSL JSON",
+  "prefs.filePicker.title": "Select Export File"
+}

@@ -23,15 +23,20 @@ After installation a new entry **"BibTeX Auto-Export"** appears in the **Tools**
 
 ## Usage
 
-All actions live under **Tools → BibTeX Auto-Export**:
+The **Tools → BibTeX Auto-Export** menu has two quick-access entries:
 
 | Menu entry | What it does |
 |---|---|
-| **Export Now** | Run an export immediately. On first use, asks you to pick a target file. |
-| **Auto-Export** | Toggle automatic export on/off (on by default). When on, every time you add items to your library the plugin writes the file a couple of seconds later. |
-| **Change Export Path…** | Pick or change the target file via a file-picker dialog. |
-| **Choose Export Format…** | Switch between BibTeX, BibLaTeX, RIS, CSV, EndNote XML or CSL JSON. The target file's extension is updated automatically. |
-| **Show Current Settings** | Show the current target path, format, auto-export state, delay, and number of items that would be exported. |
+| **Export Now** | Run an export immediately. On first use (no target file set), the Preferences pane opens so you can pick one. |
+| **Preferences…** | Open the BibTeX Auto-Export pane in Zotero's Preferences dialog. |
+
+All configuration lives in **Edit → Preferences → BibTeX Auto-Export**:
+
+- **Export file** — pick the target bibliography file via a file-picker dialog.
+- **Format** — choose BibTeX, BibLaTeX, RIS, CSV, EndNote XML or CSL JSON. The target file's extension is updated automatically when you change format.
+- **Export automatically when items are added** — toggle auto-export on or off (on by default).
+- **Debounce delay (ms)** — how long to wait after the last `item add` notification before running the export. Default 2000.
+- **Export Now** — same action as the Tools menu entry, for convenience.
 
 ### Backups
 
@@ -41,9 +46,9 @@ Before overwriting the target file, the plugin copies the previous version next 
 
 Auto-export waits `exportDelay` milliseconds (default: 2000) after each `item add` notification before running, so importing a batch of references only triggers one export at the end.
 
-## Preferences
+## Preferences (advanced)
 
-Settings are stored in Zotero's preferences under the `extensions.bibtex-auto-export.*` namespace and can be edited via **Edit → Preferences → Advanced → Config Editor** if needed:
+Behind the Preferences pane, settings are stored in Zotero's prefs under the `extensions.bibtex-auto-export.*` namespace. They can also be edited directly via **Edit → Preferences → Advanced → Config Editor**:
 
 | Preference | Default | Meaning |
 |---|---|---|
@@ -55,10 +60,9 @@ Settings are stored in Zotero's preferences under the `extensions.bibtex-auto-ex
 
 ## Known limitations
 
-- Format and path selection use native dialog prompts (no dedicated preferences pane yet).
 - The entire user library is exported on every run; per-collection or per-tag filtering is not implemented.
 - Only the first automatic `.backup` file is kept — older versions are overwritten.
-- English only; no localized strings.
+- English only — adding a new locale means dropping a `messages.json` into `chrome/locale/<locale>/` (currently only `en-US` is loaded; selection by `Zotero.locale` is not yet wired up).
 
 ## License
 
@@ -73,17 +77,33 @@ The sections below are for contributors working on the plugin itself.
 ## Project layout
 
 ```
-manifest.json                 Zotero 7 extension manifest
-bootstrap.js                  All plugin runtime logic; exports startup/shutdown/onMainWindowLoad/onMainWindowUnload
-chrome/content/helpers.js     Pure helper functions (no Zotero APIs) — dual-loadable by Zotero and Jest
-chrome/locale/en-US/          Currently empty (no localization yet)
-package.json                  Dev harness for Jest — not shipped in the XPI
-test/helpers.test.js          Unit tests for the helpers
-update.json                   Zotero update manifest served from the repo's main branch
-.github/workflows/release.yml Tag-triggered build & release workflow
+manifest.json                       Zotero 7 extension manifest (with icon reference)
+bootstrap.js                        Plugin runtime entry; startup/shutdown/onMainWindowLoad/onMainWindowUnload
+chrome/content/helpers.js           Pure helpers — dual-loadable by Zotero and Jest
+chrome/content/i18n.js              Tiny i18n module — dual-loadable by Zotero and Jest
+chrome/content/preferences.xhtml    Preferences pane markup (HTML)
+chrome/content/preferences.js       Preferences pane controller, loaded by Zotero.PreferencePanes.register
+chrome/content/icon.svg             Plugin icon (Tools menu, Add-ons list, prefs pane header)
+chrome/locale/en-US/messages.json   English UI strings (loaded at startup via fetch)
+package.json                        Dev harness for Jest — not shipped in the XPI
+test/helpers.test.js                Unit tests for the helpers
+test/i18n.test.js                   Unit tests for the i18n module
+update.json                         Zotero update manifest served from the repo's main branch
+.github/workflows/release.yml       Tag-triggered build & release workflow
 ```
 
-All runtime logic lives as a single object literal `Zotero.BibTeXAutoExport` in `bootstrap.js`. `startup(data, reason)` loads `helpers.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string), registers the notifier observer, and then — once `Zotero.uiReadyPromise` resolves — installs the Tools menu on any already-open main windows. Windows opened later are handled by the top-level `onMainWindowLoad` / `onMainWindowUnload` hooks that Zotero 7 calls per window.
+All runtime logic lives as a single object literal `Zotero.BibTeXAutoExport` in `bootstrap.js`. `startup(data, reason)` does, in order:
+
+1. Loads `helpers.js` and `i18n.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string).
+2. `fetch`es `chrome/locale/en-US/messages.json` and passes it to `BibTeXAutoExportI18n.init()`.
+3. Builds the `Zotero.BibTeXAutoExport` object with config (mirrored from `Zotero.Prefs`), and exposes `helpers` and `i18n` on it so the prefs pane script can reuse them.
+4. Registers the preferences pane via `Zotero.PreferencePanes.register({ src, label, image, scripts })`. The returned pane ID is stored in a closure variable so the menu's "Preferences…" item can call `Zotero.Utilities.Internal.openPreferences(prefsPaneID)`.
+5. Registers the notifier observer.
+6. `await`s `Zotero.uiReadyPromise` and installs the Tools menu (Export Now + Preferences…) on every already-open main window.
+
+Windows opened later are handled by the top-level `onMainWindowLoad` / `onMainWindowUnload` hooks that Zotero 7 calls per window.
+
+The notifier handler always calls `refreshConfig()` before reading from `this.config`, because the prefs pane writes to `Zotero.Prefs` directly without notifying the in-memory state.
 
 ## Build
 
@@ -99,7 +119,7 @@ For debugging, use **Help → Debug Output Logging** in Zotero; the plugin's log
 
 ## Tests
 
-Pure string/path/counting logic is extracted into `chrome/content/helpers.js` and unit-tested with Jest, so those helpers can be tested without starting a Zotero instance.
+Pure logic is extracted into `chrome/content/helpers.js` (string/path/counting) and `chrome/content/i18n.js` (string lookup + placeholder substitution) and unit-tested with Jest. Both files can be tested without starting a Zotero instance.
 
 ```sh
 npm install                                           # first time only
@@ -107,23 +127,30 @@ npm test
 npx jest test/helpers.test.js -t replaceExtension     # run a single describe/test
 ```
 
-`helpers.js` is **dual-loadable**:
+Both `helpers.js` and `i18n.js` are **dual-loadable**:
 
-- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/helpers.js")` at the top of `startup()`. The file declares `var BibTeXAutoExportHelpers = (function() { ... })();`, exposing the helpers as a sandbox global in the bootstrap scope.
-- **In Node/Jest**: a `module.exports` guard at the bottom of the file exports the same object via CommonJS, so `require('../chrome/content/helpers')` works from test code.
+- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/<file>.js")` at the top of `startup()`. Each file declares its API as a `var` (`BibTeXAutoExportHelpers`, `BibTeXAutoExportI18n`), exposing it as a sandbox global in the bootstrap scope.
+- **In Node/Jest**: a `module.exports` guard at the bottom of each file exports the same object via CommonJS, so `require('../chrome/content/helpers')` and `require('../chrome/content/i18n')` work from test code.
 
-**Important**: `helpers.js` must not reference any Zotero APIs, DOM, or XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js`.
+**Important**: both files must stay free of Zotero APIs, DOM, and XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js` or `chrome/content/preferences.js`.
 
 Currently covered:
 
-- `replaceExtension` — swapping the extension of a path (including dotted directory names and paths without an extension).
-- `extensionForTranslatorLabel` — mapping a translator label (e.g. `"BibLaTeX"`, `"CSL JSON"`) to a file extension.
-- `findFormatKeyByTranslatorID` — reverse lookup in the translators map.
-- `parsePromptIndex` — validating user input from the format-selection prompt (1-based → 0-based, range check).
-- `countBibEntries` — counting `@` entries in BibTeX content, falling back to line count.
-- `buildExportHeader` — generating the `%`-comment header for BibTeX/BibLaTeX exports.
+- **helpers** — `replaceExtension`, `extensionForTranslatorLabel`, `findFormatKeyByTranslatorID`, `parsePromptIndex`, `countBibEntries`, `buildExportHeader` (26 tests).
+- **i18n** — `init`, `t` (with and without placeholders), `has`, `reset`, fallback for missing keys, repeated and unknown placeholders (11 tests).
 
-26 tests total. Anything that depends on the Zotero runtime (notifier, `Zotero.Translate.Export`, XUL menu, file writes) is **not** unit-testable here — that would require an integration test setup running inside a real Zotero instance.
+37 tests total. Anything that depends on the Zotero runtime (notifier, `Zotero.Translate.Export`, XUL menu, file writes, prefs pane DOM) is **not** unit-testable here — that would require an integration test setup running inside a real Zotero instance.
+
+## Localization
+
+UI strings live in `chrome/locale/<locale>/messages.json` as a flat key→template object. Placeholders use `{name}` syntax (substituted by `BibTeXAutoExportI18n.t(key, params)`).
+
+Currently only `en-US` is shipped, and `bootstrap.js` always loads `en-US/messages.json` regardless of `Zotero.locale`. To add a new locale:
+
+1. Copy `chrome/locale/en-US/messages.json` to `chrome/locale/<locale>/messages.json` and translate the values.
+2. Wire `Zotero.locale` (or `Services.locale.requestedLocale`) into the `fetch()` call in `bootstrap.js`'s `startup()`, with a fallback to `en-US` for unknown locales.
+
+The preferences pane uses the same `BibTeXAutoExportI18n` instance — `data-i18n="<key>"` attributes on elements in `preferences.xhtml` are replaced at load time by `preferences.js`.
 
 ## Release process
 
