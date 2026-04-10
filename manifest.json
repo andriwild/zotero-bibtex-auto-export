@@ -1,15 +1,15 @@
 {
   "manifest_version": 2,
-  "name": "Mein Test Plugin",
+  "name": "Zotero Auto-Export",
   "version": "0.1.0",
-  "description": "Mein erstes Zotero Plugin",
-  "author": "Dein Name",
+  "description": "Automatically exports the Zotero library to a bibliography file (BibTeX, BibLaTeX, RIS, CSV, EndNote XML, CSL JSON) whenever items are added.",
+  "author": "andri",
   "applications": {
     "zotero": {
-      "id": "testplugin@example.com",
-      "update_url": "https://raw.githubusercontent.com/username/repo/main/update.json",
-      "strict_min_version": "6.0",
-      "strict_max_version": "7.0.*"
+      "id": "zotero-auto-export@andri.local",
+      "update_url": "https://raw.githubusercontent.com/andri/zotero-auto-export/main/update.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "8.0.*"
     }
   }
 }

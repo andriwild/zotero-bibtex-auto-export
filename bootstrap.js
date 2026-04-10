@@ -3,7 +3,8 @@ if (typeof Zotero !== 'undefined') {
 }
 
 function startup(data, reason) {
-    Services.scriptloader.loadSubScript(data.resourceURI.spec + "chrome/content/helpers.js");
+    let rootURI = data.rootURI || (data.resourceURI && data.resourceURI.spec);
+    Services.scriptloader.loadSubScript(rootURI + "chrome/content/helpers.js");
 
     Zotero.TestPlugin = {
         version: "0.1.0",
@@ -11,7 +12,7 @@ function startup(data, reason) {
         
         // Configuration with more export formats
         config: {
-            exportPath: Zotero.Prefs.get('extensions.testplugin.exportPath') || "/home/andri/Documents/zotero-export.bib",
+            exportPath: Zotero.Prefs.get('extensions.testplugin.exportPath') || "",
             exportFormat: Zotero.Prefs.get('extensions.testplugin.exportFormat') || "bibtex",
             translatorID: Zotero.Prefs.get('extensions.testplugin.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4',
             autoExport: Zotero.Prefs.get('extensions.testplugin.autoExport') !== false,
@@ -57,16 +58,16 @@ function startup(data, reason) {
             this.log("Preferences saved");
         },
         
-        // Add menu items to Tools menu
-        addMenu: function() {
+        // Add menu items to the Tools menu of a given main window
+        addMenu: function(window) {
             let self = this;
-            let doc = Zotero.getMainWindow().document;
+            let doc = window.document;
             let menubar = doc.getElementById('menu_ToolsPopup');
-            
+
             if (!menubar) return;
-            
-            // Remove existing menu if present
-            this.removeMenu();
+
+            // Remove existing menu if present (idempotent)
+            this.removeMenu(window);
             
             // Add separator
             let sep = doc.createXULElement('menuseparator');
@@ -131,13 +132,13 @@ function startup(data, reason) {
             
             menu.appendChild(popup);
             menubar.appendChild(menu);
-            
+
             this.log("Menu added");
         },
-        
-        removeMenu: function() {
+
+        removeMenu: function(window) {
             try {
-                let doc = Zotero.getMainWindow().document;
+                let doc = window.document;
                 let menu = doc.getElementById('testplugin-menu');
                 let sep = doc.getElementById('testplugin-sep');
                 if (menu) menu.remove();
@@ -328,10 +329,9 @@ function startup(data, reason) {
                 notify: async function(event, type, ids, extraData) {
                     if (type === 'item' && event === 'add' && self.config.autoExport) {
                         self.log("New items detected: " + ids.length);
-                        
-                        Zotero.getMainWindow().setTimeout(function() {
-                            self.exportLibrary();
-                        }, self.config.exportDelay);
+
+                        await Zotero.Promise.delay(self.config.exportDelay);
+                        await self.exportLibrary();
                     }
                 }
             }, ['item']);
@@ -342,7 +342,14 @@ function startup(data, reason) {
         exportLibrary: async function() {
             try {
                 this.log("Starting export...");
-                
+
+                if (!this.config.exportPath) {
+                    this.log("No export path configured — prompting user");
+                    this.notifyUser("Export Path Required", "Pick a file to export to.");
+                    this.changeExportPath();
+                    return;
+                }
+
                 let libraryID = Zotero.Libraries.userLibraryID;
                 let items = await Zotero.Items.getAll(libraryID, true);
                 items = items.filter(item => item.isRegularItem());
@@ -378,7 +385,7 @@ function startup(data, reason) {
             } catch (error) {
                 this.log("Export error: " + error.message);
                 Services.console.logStringMessage("Export error details: " + error.stack);
-                Zotero.getMainWindow().alert("Export failed: " + error.message);
+                this.notifyUser("Export Failed", error.message);
             }
         },
         
@@ -427,7 +434,6 @@ function startup(data, reason) {
         
         showNotification: true,
         notifyUser: function(title, text) {
-            let win = Zotero.getMainWindow();
             let progressWindow = new Zotero.ProgressWindow();
             progressWindow.changeHeadline(title);
             progressWindow.addLines([text]);
@@ -455,18 +461,45 @@ function startup(data, reason) {
         }
     };
     
-    // Initialization
-    Zotero.getMainWindow().setTimeout(function() {
-        try {
-            Zotero.TestPlugin.registerExportListener();
-            Zotero.TestPlugin.addMenu();
-            Zotero.TestPlugin.log("Auto-Export Plugin initialized");
-            Zotero.TestPlugin.log("Export path: " + Zotero.TestPlugin.config.exportPath);
-            Zotero.TestPlugin.log("Auto-export: " + (Zotero.TestPlugin.config.autoExport ? "enabled" : "disabled"));
-        } catch (error) {
-            Services.console.logStringMessage("[TestPlugin] Init error: " + error.message);
+    Zotero.TestPlugin.registerExportListener();
+    Zotero.TestPlugin.log("Auto-Export Plugin initialized");
+    Zotero.TestPlugin.log("Export path: " + (Zotero.TestPlugin.config.exportPath || "(not set)"));
+    Zotero.TestPlugin.log("Auto-export: " + (Zotero.TestPlugin.config.autoExport ? "enabled" : "disabled"));
+
+    // Attach menu to any main windows already open when the plugin starts.
+    // Windows opened later are handled by onMainWindowLoad (Zotero 7 hook).
+    Zotero.uiReadyPromise.then(function() {
+        let windows = Zotero.getMainWindows();
+        for (let win of windows) {
+            if (win.ZoteroPane) {
+                try {
+                    Zotero.TestPlugin.addMenu(win);
+                } catch (error) {
+                    Services.console.logStringMessage("[TestPlugin] addMenu error: " + error.message);
+                }
+            }
         }
-    }, 1000);
+    });
+}
+
+function onMainWindowLoad({ window }) {
+    if (Zotero.TestPlugin) {
+        try {
+            Zotero.TestPlugin.addMenu(window);
+        } catch (error) {
+            Services.console.logStringMessage("[TestPlugin] onMainWindowLoad error: " + error.message);
+        }
+    }
+}
+
+function onMainWindowUnload({ window }) {
+    if (Zotero.TestPlugin) {
+        try {
+            Zotero.TestPlugin.removeMenu(window);
+        } catch (error) {
+            Services.console.logStringMessage("[TestPlugin] onMainWindowUnload error: " + error.message);
+        }
+    }
 }
 
 function shutdown(data, reason) {
@@ -476,7 +509,9 @@ function shutdown(data, reason) {
                 Zotero.Notifier.unregisterObserver(Zotero.TestPlugin.notifierID);
                 Zotero.TestPlugin.log("Export listener removed");
             }
-            Zotero.TestPlugin.removeMenu();
+            for (let win of Zotero.getMainWindows()) {
+                Zotero.TestPlugin.removeMenu(win);
+            }
         }
     } catch (error) {
         Services.console.logStringMessage("[TestPlugin] Shutdown error: " + error.message);
