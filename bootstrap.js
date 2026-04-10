@@ -1,22 +1,22 @@
 if (typeof Zotero !== 'undefined') {
-    Zotero.TestPlugin = {};
+    Zotero.BibTeXAutoExport = {};
 }
 
 function startup(data, reason) {
     let rootURI = data.rootURI || (data.resourceURI && data.resourceURI.spec);
     Services.scriptloader.loadSubScript(rootURI + "chrome/content/helpers.js");
 
-    Zotero.TestPlugin = {
+    Zotero.BibTeXAutoExport = {
         version: "0.1.0",
         active: true,
         
         // Configuration with more export formats
         config: {
-            exportPath: Zotero.Prefs.get('extensions.testplugin.exportPath') || "",
-            exportFormat: Zotero.Prefs.get('extensions.testplugin.exportFormat') || "bibtex",
-            translatorID: Zotero.Prefs.get('extensions.testplugin.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4',
-            autoExport: Zotero.Prefs.get('extensions.testplugin.autoExport') !== false,
-            exportDelay: Zotero.Prefs.get('extensions.testplugin.exportDelay') || 2000
+            exportPath: Zotero.Prefs.get('extensions.bibtex-auto-export.exportPath') || "",
+            exportFormat: Zotero.Prefs.get('extensions.bibtex-auto-export.exportFormat') || "bibtex",
+            translatorID: Zotero.Prefs.get('extensions.bibtex-auto-export.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4',
+            autoExport: Zotero.Prefs.get('extensions.bibtex-auto-export.autoExport') !== false,
+            exportDelay: Zotero.Prefs.get('extensions.bibtex-auto-export.exportDelay') || 2000
         },
         
         // Available export translators
@@ -44,17 +44,17 @@ function startup(data, reason) {
         },
         
         log: function(message) {
-            Zotero.debug("[TestPlugin] " + message);
-            Services.console.logStringMessage("[TestPlugin] " + message);
+            Zotero.debug("[BibTeXAutoExport] " + message);
+            Services.console.logStringMessage("[BibTeXAutoExport] " + message);
         },
         
         // Save preferences
         savePrefs: function() {
-            Zotero.Prefs.set('extensions.testplugin.exportPath', this.config.exportPath);
-            Zotero.Prefs.set('extensions.testplugin.exportFormat', this.config.exportFormat);
-            Zotero.Prefs.set('extensions.testplugin.translatorID', this.config.translatorID);
-            Zotero.Prefs.set('extensions.testplugin.autoExport', this.config.autoExport);
-            Zotero.Prefs.set('extensions.testplugin.exportDelay', this.config.exportDelay);
+            Zotero.Prefs.set('extensions.bibtex-auto-export.exportPath', this.config.exportPath);
+            Zotero.Prefs.set('extensions.bibtex-auto-export.exportFormat', this.config.exportFormat);
+            Zotero.Prefs.set('extensions.bibtex-auto-export.translatorID', this.config.translatorID);
+            Zotero.Prefs.set('extensions.bibtex-auto-export.autoExport', this.config.autoExport);
+            Zotero.Prefs.set('extensions.bibtex-auto-export.exportDelay', this.config.exportDelay);
             this.log("Preferences saved");
         },
         
@@ -71,12 +71,12 @@ function startup(data, reason) {
             
             // Add separator
             let sep = doc.createXULElement('menuseparator');
-            sep.id = 'testplugin-sep';
+            sep.id = 'bibtex-auto-export-sep';
             menubar.appendChild(sep);
             
             // Main menu
             let menu = doc.createXULElement('menu');
-            menu.id = 'testplugin-menu';
+            menu.id = 'bibtex-auto-export-menu';
             menu.setAttribute('label', 'BibTeX Auto-Export');
             
             let popup = doc.createXULElement('menupopup');
@@ -139,8 +139,8 @@ function startup(data, reason) {
         removeMenu: function(window) {
             try {
                 let doc = window.document;
-                let menu = doc.getElementById('testplugin-menu');
-                let sep = doc.getElementById('testplugin-sep');
+                let menu = doc.getElementById('bibtex-auto-export-menu');
+                let sep = doc.getElementById('bibtex-auto-export-sep');
                 if (menu) menu.remove();
                 if (sep) sep.remove();
             } catch (e) {
@@ -183,15 +183,15 @@ function startup(data, reason) {
                 
                 let input = win.prompt(message, "1");
 
-                let index = TestPluginHelpers.parsePromptIndex(input, bibTranslators.length);
+                let index = BibTeXAutoExportHelpers.parsePromptIndex(input, bibTranslators.length);
                 if (index !== null) {
                     let selectedTranslator = bibTranslators[index];
 
                     this.config.translatorID = selectedTranslator.translatorID;
                     this.config.exportFormat = selectedTranslator.label.toLowerCase().replace(/\s+/g, '');
 
-                    let newExtension = TestPluginHelpers.extensionForTranslatorLabel(selectedTranslator.label);
-                    this.config.exportPath = TestPluginHelpers.replaceExtension(this.config.exportPath, newExtension);
+                    let newExtension = BibTeXAutoExportHelpers.extensionForTranslatorLabel(selectedTranslator.label);
+                    this.config.exportPath = BibTeXAutoExportHelpers.replaceExtension(this.config.exportPath, newExtension);
 
                     this.savePrefs();
                     this.log("Export format changed to: " + selectedTranslator.label);
@@ -216,7 +216,7 @@ function startup(data, reason) {
             
             let formats = Object.keys(this.translators).map(key => this.translators[key].label);
             let formatsList = formats.map((item, index) => `${index + 1}. ${item}`).join('\n');
-            let currentFormat = TestPluginHelpers.findFormatKeyByTranslatorID(this.translators, this.config.translatorID);
+            let currentFormat = BibTeXAutoExportHelpers.findFormatKeyByTranslatorID(this.translators, this.config.translatorID);
             let currentLabel = currentFormat ? this.translators[currentFormat].label : 'Unknown';
 
             let message = "Current format: " + currentLabel + "\n\n";
@@ -225,7 +225,7 @@ function startup(data, reason) {
             let input = win.prompt(message, "1");
 
             let keys = Object.keys(this.translators);
-            let index = TestPluginHelpers.parsePromptIndex(input, keys.length);
+            let index = BibTeXAutoExportHelpers.parsePromptIndex(input, keys.length);
             if (index !== null) {
                 let selectedKey = keys[index];
                 let selectedTranslator = this.translators[selectedKey];
@@ -233,7 +233,7 @@ function startup(data, reason) {
                 this.config.exportFormat = selectedKey;
                 this.config.translatorID = selectedTranslator.id;
 
-                this.config.exportPath = TestPluginHelpers.replaceExtension(this.config.exportPath, selectedTranslator.extension);
+                this.config.exportPath = BibTeXAutoExportHelpers.replaceExtension(this.config.exportPath, selectedTranslator.extension);
 
                 this.savePrefs();
                 this.log("Format changed to: " + selectedTranslator.label);
@@ -396,8 +396,8 @@ function startup(data, reason) {
                 }
                 
                 let timestamp = new Date().toISOString();
-                let itemCount = TestPluginHelpers.countBibEntries(content);
-                let header = TestPluginHelpers.buildExportHeader(this.config.exportFormat, timestamp, itemCount);
+                let itemCount = BibTeXAutoExportHelpers.countBibEntries(content);
+                let header = BibTeXAutoExportHelpers.buildExportHeader(this.config.exportFormat, timestamp, itemCount);
 
                 let fullContent = header + content;
                 
@@ -461,10 +461,10 @@ function startup(data, reason) {
         }
     };
     
-    Zotero.TestPlugin.registerExportListener();
-    Zotero.TestPlugin.log("Auto-Export Plugin initialized");
-    Zotero.TestPlugin.log("Export path: " + (Zotero.TestPlugin.config.exportPath || "(not set)"));
-    Zotero.TestPlugin.log("Auto-export: " + (Zotero.TestPlugin.config.autoExport ? "enabled" : "disabled"));
+    Zotero.BibTeXAutoExport.registerExportListener();
+    Zotero.BibTeXAutoExport.log("Auto-Export Plugin initialized");
+    Zotero.BibTeXAutoExport.log("Export path: " + (Zotero.BibTeXAutoExport.config.exportPath || "(not set)"));
+    Zotero.BibTeXAutoExport.log("Auto-export: " + (Zotero.BibTeXAutoExport.config.autoExport ? "enabled" : "disabled"));
 
     // Attach menu to any main windows already open when the plugin starts.
     // Windows opened later are handled by onMainWindowLoad (Zotero 7 hook).
@@ -473,9 +473,9 @@ function startup(data, reason) {
         for (let win of windows) {
             if (win.ZoteroPane) {
                 try {
-                    Zotero.TestPlugin.addMenu(win);
+                    Zotero.BibTeXAutoExport.addMenu(win);
                 } catch (error) {
-                    Services.console.logStringMessage("[TestPlugin] addMenu error: " + error.message);
+                    Services.console.logStringMessage("[BibTeXAutoExport] addMenu error: " + error.message);
                 }
             }
         }
@@ -483,38 +483,38 @@ function startup(data, reason) {
 }
 
 function onMainWindowLoad({ window }) {
-    if (Zotero.TestPlugin) {
+    if (Zotero.BibTeXAutoExport) {
         try {
-            Zotero.TestPlugin.addMenu(window);
+            Zotero.BibTeXAutoExport.addMenu(window);
         } catch (error) {
-            Services.console.logStringMessage("[TestPlugin] onMainWindowLoad error: " + error.message);
+            Services.console.logStringMessage("[BibTeXAutoExport] onMainWindowLoad error: " + error.message);
         }
     }
 }
 
 function onMainWindowUnload({ window }) {
-    if (Zotero.TestPlugin) {
+    if (Zotero.BibTeXAutoExport) {
         try {
-            Zotero.TestPlugin.removeMenu(window);
+            Zotero.BibTeXAutoExport.removeMenu(window);
         } catch (error) {
-            Services.console.logStringMessage("[TestPlugin] onMainWindowUnload error: " + error.message);
+            Services.console.logStringMessage("[BibTeXAutoExport] onMainWindowUnload error: " + error.message);
         }
     }
 }
 
 function shutdown(data, reason) {
     try {
-        if (Zotero.TestPlugin) {
-            if (Zotero.TestPlugin.notifierID) {
-                Zotero.Notifier.unregisterObserver(Zotero.TestPlugin.notifierID);
-                Zotero.TestPlugin.log("Export listener removed");
+        if (Zotero.BibTeXAutoExport) {
+            if (Zotero.BibTeXAutoExport.notifierID) {
+                Zotero.Notifier.unregisterObserver(Zotero.BibTeXAutoExport.notifierID);
+                Zotero.BibTeXAutoExport.log("Export listener removed");
             }
             for (let win of Zotero.getMainWindows()) {
-                Zotero.TestPlugin.removeMenu(win);
+                Zotero.BibTeXAutoExport.removeMenu(win);
             }
         }
     } catch (error) {
-        Services.console.logStringMessage("[TestPlugin] Shutdown error: " + error.message);
+        Services.console.logStringMessage("[BibTeXAutoExport] Shutdown error: " + error.message);
     }
 }
 

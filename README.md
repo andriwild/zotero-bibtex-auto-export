@@ -1,4 +1,4 @@
-# Zotero Auto-Export
+# Zotero BibTeX Auto-Export
 
 A Zotero 7 plugin that automatically exports your library to a bibliography file whenever new items are added — no manual "File → Export" step needed.
 
@@ -14,7 +14,7 @@ Anyone who keeps a `.bib` file (or other bibliography file) in sync with their Z
 
 ## Installation
 
-1. Download the latest `zotero-auto-export.xpi` from the [Releases page](https://github.com/andri/zotero-auto-export/releases).
+1. Download the latest `zotero-bibtex-auto-export.xpi` from the [Releases page](https://github.com/andriwild/zotero-bibtex-auto-export/releases).
 2. In Zotero, open **Tools → Add-ons**.
 3. Click the gear icon in the top-right of the Add-ons window and choose **Install Add-on From File…**.
 4. Select the downloaded `.xpi`. Restart Zotero if prompted.
@@ -43,15 +43,15 @@ Auto-export waits `exportDelay` milliseconds (default: 2000) after each `item ad
 
 ## Preferences
 
-Settings are stored in Zotero's preferences under the `extensions.testplugin.*` namespace and can be edited via **Edit → Preferences → Advanced → Config Editor** if needed:
+Settings are stored in Zotero's preferences under the `extensions.bibtex-auto-export.*` namespace and can be edited via **Edit → Preferences → Advanced → Config Editor** if needed:
 
 | Preference | Default | Meaning |
 |---|---|---|
-| `extensions.testplugin.exportPath` | *(unset)* | Absolute path to the bibliography file |
-| `extensions.testplugin.exportFormat` | `bibtex` | Format key |
-| `extensions.testplugin.translatorID` | BibTeX translator ID | Zotero translator to use |
-| `extensions.testplugin.autoExport` | `true` | Whether to export on item-add |
-| `extensions.testplugin.exportDelay` | `2000` | Debounce delay in ms |
+| `extensions.bibtex-auto-export.exportPath` | *(unset)* | Absolute path to the bibliography file |
+| `extensions.bibtex-auto-export.exportFormat` | `bibtex` | Format key |
+| `extensions.bibtex-auto-export.translatorID` | BibTeX translator ID | Zotero translator to use |
+| `extensions.bibtex-auto-export.autoExport` | `true` | Whether to export on item-add |
+| `extensions.bibtex-auto-export.exportDelay` | `2000` | Debounce delay in ms |
 
 ## Known limitations
 
@@ -83,19 +83,19 @@ update.json                   Zotero update manifest served from the repo's main
 .github/workflows/release.yml Tag-triggered build & release workflow
 ```
 
-All runtime logic lives as a single object literal `Zotero.TestPlugin` in `bootstrap.js`. `startup(data, reason)` loads `helpers.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string), registers the notifier observer, and then — once `Zotero.uiReadyPromise` resolves — installs the Tools menu on any already-open main windows. Windows opened later are handled by the top-level `onMainWindowLoad` / `onMainWindowUnload` hooks that Zotero 7 calls per window.
+All runtime logic lives as a single object literal `Zotero.BibTeXAutoExport` in `bootstrap.js`. `startup(data, reason)` loads `helpers.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string), registers the notifier observer, and then — once `Zotero.uiReadyPromise` resolves — installs the Tools menu on any already-open main windows. Windows opened later are handled by the top-level `onMainWindowLoad` / `onMainWindowUnload` hooks that Zotero 7 calls per window.
 
 ## Build
 
 There is no build system. The XPI is just a zip of the runtime files:
 
 ```sh
-zip -r zotero-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
+zip -r zotero-bibtex-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
 ```
 
 Important: `package.json`, `node_modules/`, `test/`, `update.json` and `.github/` must not end up inside the XPI — the command above only includes the four paths explicitly, so this is already taken care of.
 
-For debugging, use **Help → Debug Output Logging** in Zotero; the plugin's log lines are prefixed with `[TestPlugin]`.
+For debugging, use **Help → Debug Output Logging** in Zotero; the plugin's log lines are prefixed with `[BibTeXAutoExport]`.
 
 ## Tests
 
@@ -109,7 +109,7 @@ npx jest test/helpers.test.js -t replaceExtension     # run a single describe/te
 
 `helpers.js` is **dual-loadable**:
 
-- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/helpers.js")` at the top of `startup()`. The file declares `var TestPluginHelpers = (function() { ... })();`, exposing the helpers as a sandbox global in the bootstrap scope.
+- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/helpers.js")` at the top of `startup()`. The file declares `var BibTeXAutoExportHelpers = (function() { ... })();`, exposing the helpers as a sandbox global in the bootstrap scope.
 - **In Node/Jest**: a `module.exports` guard at the bottom of the file exports the same object via CommonJS, so `require('../chrome/content/helpers')` works from test code.
 
 **Important**: `helpers.js` must not reference any Zotero APIs, DOM, or XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js`.

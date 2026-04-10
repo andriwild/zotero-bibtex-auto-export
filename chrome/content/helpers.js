@@ -1,7 +1,7 @@
-// Pure helpers for TestPlugin. Loaded both by Zotero (via loadSubScript)
+// Pure helpers for the BibTeX Auto-Export plugin. Loaded both by Zotero (via loadSubScript)
 // and by Jest (via require). Must not reference Zotero, DOM, or XPCOM.
 
-var TestPluginHelpers = (function() {
+var BibTeXAutoExportHelpers = (function() {
     function replaceExtension(path, newExtension) {
         if (typeof path !== 'string' || !path) return path;
         var withoutExt = path.replace(/\.[^/.]+$/, "");
@@ -58,5 +58,5 @@ var TestPluginHelpers = (function() {
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TestPluginHelpers;
+    module.exports = BibTeXAutoExportHelpers;
 }
