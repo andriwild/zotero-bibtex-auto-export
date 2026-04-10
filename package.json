@@ -1,0 +1,12 @@
+{
+  "name": "zotero-testplugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zotero auto-export plugin (dev harness for unit tests only — not used at runtime).",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

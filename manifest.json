@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Mein Test Plugin",
+  "version": "0.1.0",
+  "description": "Mein erstes Zotero Plugin",
+  "author": "Dein Name",
+  "applications": {
+    "zotero": {
+      "id": "testplugin@example.com",
+      "update_url": "https://raw.githubusercontent.com/username/repo/main/update.json",
+      "strict_min_version": "6.0",
+      "strict_max_version": "7.0.*"
+    }
+  }
+}
