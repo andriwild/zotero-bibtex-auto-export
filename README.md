@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Zotero 7](https://img.shields.io/badge/Zotero-7.0%2B-blueviolet)](https://www.zotero.org/)
 
-A Zotero 7 plugin that automatically exports your library — or a single collection — to a bibliography file whenever items are added. Keeps your `.bib` file in sync with Zotero without ever clicking **File → Export** again.
+A Zotero 7 plugin that automatically exports your library — or a single collection — to a bibliography file whenever items are added. Keeps your `.bib`, `.bib` (BibLaTeX) or other bibliography file in sync with Zotero so you never have to click **File → Export** again. Built for **LaTeX**, **Typst** and **Pandoc** workflows where the bibliography lives on disk and gets pulled in by your build.
 
 Supported formats: **BibTeX** (default), **BibLaTeX**, **RIS**, **CSV**, **EndNote XML**, **CSL JSON**.
 
@@ -22,7 +22,7 @@ Supported formats: **BibTeX** (default), **BibLaTeX**, **RIS**, **CSV**, **EndNo
 
 ## Who is this for
 
-Anyone who keeps a `.bib` file (or other bibliography file) in sync with their Zotero library for use in LaTeX, pandoc, or another tool that reads from disk. Instead of re-exporting by hand every time you add a reference, this plugin writes the file for you a couple of seconds after each item is added.
+Anyone who keeps a bibliography file in sync with their Zotero library for use in **LaTeX** (`\bibliography{refs.bib}` with BibTeX or BibLaTeX), **Typst** (`#bibliography("refs.bib")` or `.yml` via CSL JSON), **Pandoc** (`--bibliography refs.bib`), or any other tool that reads references from disk. Instead of re-exporting by hand every time you add a reference, this plugin writes the file for you a couple of seconds after each item is added.
 
 ## Requirements
 
