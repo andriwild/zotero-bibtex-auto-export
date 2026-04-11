@@ -97,10 +97,11 @@ All runtime logic lives as a single object literal `Zotero.BibTeXAutoExport` in 
 
 1. Loads `helpers.js` and `i18n.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string).
 2. `fetch`es `chrome/locale/en-US/messages.json` and passes it to `BibTeXAutoExportI18n.init()`.
-3. Builds the `Zotero.BibTeXAutoExport` object with config (mirrored from `Zotero.Prefs`), and exposes `helpers` and `i18n` on it so the prefs pane script can reuse them.
-4. Registers the preferences pane via `Zotero.PreferencePanes.register({ src, label, image, scripts })`. The returned pane ID is stored in a closure variable so the menu's "Preferences…" item can call `Zotero.Utilities.Internal.openPreferences(prefsPaneID)`.
-5. Registers the notifier observer.
-6. `await`s `Zotero.uiReadyPromise` and installs the Tools menu (Export Now + Preferences…) on every already-open main window.
+3. Seeds first-run defaults in `Zotero.Prefs` (`exportFormat`, `translatorID`, `autoExport`, `exportDelay`, `collectionKey`) so XUL `preference="..."` bindings show real values instead of empty state.
+4. Builds the `Zotero.BibTeXAutoExport` object with config mirrored from `Zotero.Prefs`, plus all the prefs-pane handlers (`prefsBrowseExportPath`, `prefsFormatChanged`, `prefsCollectionChanged`, `prefsExportNow`, `prefsFormatPopupShowing`, `prefsCollectionPopupShowing`).
+5. Registers the preferences pane via `Zotero.PreferencePanes.register({ pluginID, src, label, image })`. **Does not pass a `scripts:` field** — Zotero 7 silently no-ops it. All pane logic runs inside the bootstrap scope via inline XUL `oncommand`/`onpopupshowing` handlers that call `Zotero.BibTeXAutoExport.prefs*` methods. The returned pane ID is stored in a closure variable so the menu's "Preferences…" item can open it via `Zotero.Utilities.Internal.openPreferences(prefsPaneID)`.
+6. Registers the notifier observer.
+7. `await`s `Zotero.uiReadyPromise` and installs the Tools menu (Export Now + Preferences…) on every already-open main window.
 
 Windows opened later are handled by the top-level `onMainWindowLoad` / `onMainWindowUnload` hooks that Zotero 7 calls per window.
 
@@ -137,10 +138,8 @@ Both `helpers.js` and `i18n.js` are **dual-loadable**:
 
 Currently covered:
 
-- **helpers** — `replaceExtension`, `extensionForTranslatorLabel`, `findFormatKeyByTranslatorID`, `parsePromptIndex`, `countBibEntries`, `buildExportHeader` (26 tests).
-- **i18n** — `init`, `t` (with and without placeholders), `has`, `reset`, fallback for missing keys, repeated and unknown placeholders (11 tests).
-
-37 tests total. Anything that depends on the Zotero runtime (notifier, `Zotero.Translate.Export`, XUL menu, file writes, prefs pane DOM) is **not** unit-testable here — that would require an integration test setup running inside a real Zotero instance.
+- **helpers** — `replaceExtension`, `extensionForTranslatorLabel`, `findFormatKeyByTranslatorID`, `parsePromptIndex`, `countBibEntries`, `buildExportHeader`, `buildCollectionTree` (collection-hierarchy builder used by the prefs pane, covered with 10 cases including flat lists, nested trees, alphabetical sort, orphan nodes, case-insensitive sort and malformed input).
+- **i18n** — `init`, `t` (with and without placeholders), `has`, `reset`, fallback for missing keys, repeated and unknown placeholders. Anything that depends on the Zotero runtime (notifier, `Zotero.Translate.Export`, XUL menu, file writes, prefs pane DOM) is **not** unit-testable here — that would require an integration test setup running inside a real Zotero instance.
 
 ## Localization
 

@@ -428,35 +428,14 @@ async function startup(data, reason) {
                 let sep = doc.createXULElement('menuseparator');
                 menupopup.appendChild(sep);
 
-                // Build parent→children tree from parentKey
-                let byKey = {};
-                for (let i = 0; i < allCollections.length; i++) {
-                    byKey[allCollections[i].key] = { coll: allCollections[i], children: [] };
-                }
-                let roots = [];
-                for (let i = 0; i < allCollections.length; i++) {
-                    let c = allCollections[i];
-                    if (c.parentKey && byKey[c.parentKey]) {
-                        byKey[c.parentKey].children.push(byKey[c.key]);
-                    } else {
-                        roots.push(byKey[c.key]);
-                    }
-                }
-
-                let sortNodes = function(nodes) {
-                    nodes.sort(function(a, b) {
-                        return a.coll.name.localeCompare(b.coll.name);
-                    });
-                    for (let n = 0; n < nodes.length; n++) sortNodes(nodes[n].children);
-                };
-                sortNodes(roots);
+                let roots = BibTeXAutoExportHelpers.buildCollectionTree(allCollections);
 
                 let addNode = function(node, depth) {
                     let item = doc.createXULElement('menuitem');
-                    item.setAttribute('value', node.coll.key);
+                    item.setAttribute('value', node.item.key);
                     let indent = '';
                     for (let d = 0; d < depth; d++) indent += '    ';
-                    item.setAttribute('label', indent + node.coll.name);
+                    item.setAttribute('label', indent + node.item.name);
                     menupopup.appendChild(item);
                     for (let k = 0; k < node.children.length; k++) {
                         addNode(node.children[k], depth + 1);

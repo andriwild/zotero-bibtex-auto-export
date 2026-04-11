@@ -47,13 +47,61 @@ var BibTeXAutoExportHelpers = (function() {
         return "";
     }
 
+    // Takes a flat array of objects with `key`, `parentKey` and `name`
+    // (e.g. Zotero Collection instances) and returns an array of root
+    // tree nodes. Each node has `.item` (original object) and `.children`
+    // (array of child nodes). Children are sorted alphabetically by name,
+    // case-insensitive, at every level.
+    //
+    // Orphan nodes — whose parentKey does not match any key in the input
+    // — are treated as roots. Nodes without a parentKey are also roots.
+    // Cycles are not detected; the input is trusted to be acyclic, which
+    // matches Zotero's collection model.
+    function buildCollectionTree(items) {
+        if (!Array.isArray(items) || items.length === 0) return [];
+
+        var byKey = {};
+        var i;
+        for (i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!it || typeof it.key !== 'string') continue;
+            byKey[it.key] = { item: it, children: [] };
+        }
+
+        var roots = [];
+        for (i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item || typeof item.key !== 'string') continue;
+            var node = byKey[item.key];
+            var pk = item.parentKey;
+            if (pk && byKey[pk]) {
+                byKey[pk].children.push(node);
+            } else {
+                roots.push(node);
+            }
+        }
+
+        function sortNodes(nodes) {
+            nodes.sort(function(a, b) {
+                var an = String((a.item && a.item.name) || '');
+                var bn = String((b.item && b.item.name) || '');
+                return an.toLowerCase().localeCompare(bn.toLowerCase());
+            });
+            for (var j = 0; j < nodes.length; j++) sortNodes(nodes[j].children);
+        }
+        sortNodes(roots);
+
+        return roots;
+    }
+
     return {
         replaceExtension: replaceExtension,
         extensionForTranslatorLabel: extensionForTranslatorLabel,
         findFormatKeyByTranslatorID: findFormatKeyByTranslatorID,
         parsePromptIndex: parsePromptIndex,
         countBibEntries: countBibEntries,
-        buildExportHeader: buildExportHeader
+        buildExportHeader: buildExportHeader,
+        buildCollectionTree: buildCollectionTree
     };
 })();
 

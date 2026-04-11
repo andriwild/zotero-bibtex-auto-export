@@ -111,3 +111,119 @@ describe('buildExportHeader', () => {
         expect(H.buildExportHeader('', 't', 1)).toBe('');
     });
 });
+
+describe('buildCollectionTree', () => {
+    test('returns empty array for empty input', () => {
+        expect(H.buildCollectionTree([])).toEqual([]);
+    });
+
+    test('returns empty array for non-array input', () => {
+        expect(H.buildCollectionTree(null)).toEqual([]);
+        expect(H.buildCollectionTree(undefined)).toEqual([]);
+    });
+
+    test('flat list with no parents → all roots, sorted alphabetically', () => {
+        const input = [
+            { key: 'B', parentKey: null, name: 'Beta' },
+            { key: 'A', parentKey: null, name: 'Alpha' },
+            { key: 'C', parentKey: null, name: 'Charlie' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots.map(n => n.item.name)).toEqual(['Alpha', 'Beta', 'Charlie']);
+        expect(roots.every(n => n.children.length === 0)).toBe(true);
+    });
+
+    test('simple parent/child relationship', () => {
+        const input = [
+            { key: 'P', parentKey: null, name: 'Parent' },
+            { key: 'C', parentKey: 'P', name: 'Child' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots).toHaveLength(1);
+        expect(roots[0].item.name).toBe('Parent');
+        expect(roots[0].children).toHaveLength(1);
+        expect(roots[0].children[0].item.name).toBe('Child');
+    });
+
+    test('three levels deep', () => {
+        const input = [
+            { key: 'root', parentKey: null, name: 'Root' },
+            { key: 'mid', parentKey: 'root', name: 'Middle' },
+            { key: 'leaf', parentKey: 'mid', name: 'Leaf' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots).toHaveLength(1);
+        expect(roots[0].children[0].children[0].item.name).toBe('Leaf');
+    });
+
+    test('children sorted alphabetically within each parent', () => {
+        const input = [
+            { key: 'p', parentKey: null, name: 'Parent' },
+            { key: 'c1', parentKey: 'p', name: 'Zebra' },
+            { key: 'c2', parentKey: 'p', name: 'Apple' },
+            { key: 'c3', parentKey: 'p', name: 'Mango' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots[0].children.map(n => n.item.name)).toEqual(['Apple', 'Mango', 'Zebra']);
+    });
+
+    test('sorting is case-insensitive', () => {
+        const input = [
+            { key: 'a', parentKey: null, name: 'alpha' },
+            { key: 'B', parentKey: null, name: 'Bravo' },
+            { key: 'c', parentKey: null, name: 'charlie' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots.map(n => n.item.name)).toEqual(['alpha', 'Bravo', 'charlie']);
+    });
+
+    test('orphan nodes (parentKey points to nothing) become roots', () => {
+        const input = [
+            { key: 'a', parentKey: null, name: 'Alpha' },
+            { key: 'orphan', parentKey: 'does-not-exist', name: 'Orphan' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots).toHaveLength(2);
+        expect(roots.map(n => n.item.name).sort()).toEqual(['Alpha', 'Orphan']);
+    });
+
+    test('multiple independent trees', () => {
+        const input = [
+            { key: 'a', parentKey: null, name: 'Tree A' },
+            { key: 'a1', parentKey: 'a', name: 'A-Child' },
+            { key: 'b', parentKey: null, name: 'Tree B' },
+            { key: 'b1', parentKey: 'b', name: 'B-Child' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots).toHaveLength(2);
+        expect(roots[0].item.name).toBe('Tree A');
+        expect(roots[0].children).toHaveLength(1);
+        expect(roots[1].item.name).toBe('Tree B');
+        expect(roots[1].children).toHaveLength(1);
+    });
+
+    test('skips entries without a string key', () => {
+        const input = [
+            { key: 'valid', parentKey: null, name: 'Valid' },
+            { parentKey: null, name: 'Missing key' },
+            null,
+            { key: 42, parentKey: null, name: 'Numeric key' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        expect(roots).toHaveLength(1);
+        expect(roots[0].item.name).toBe('Valid');
+    });
+
+    test('handles missing name gracefully during sort', () => {
+        const input = [
+            { key: 'a', parentKey: null, name: 'Beta' },
+            { key: 'b', parentKey: null },
+            { key: 'c', parentKey: null, name: 'Alpha' },
+        ];
+        const roots = H.buildCollectionTree(input);
+        // Missing name sorts as empty string — comes first
+        expect(roots[0].item.key).toBe('b');
+        expect(roots[1].item.name).toBe('Alpha');
+        expect(roots[2].item.name).toBe('Beta');
+    });
+});
