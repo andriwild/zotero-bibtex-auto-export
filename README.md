@@ -34,6 +34,7 @@ All configuration lives in **Edit → Preferences → BibTeX Auto-Export**:
 
 - **Export file** — pick the target bibliography file via a file-picker dialog.
 - **Format** — choose BibTeX, BibLaTeX, RIS, CSV, EndNote XML or CSL JSON. The target file's extension is updated automatically when you change format.
+- **Source** — choose which collection to export. Default is **Whole library**; selecting a collection exports that collection and all its subcollections (deduplicated). If the chosen collection is later deleted, the next export falls back to the whole library and shows a warning.
 - **Export automatically when items are added** — toggle auto-export on or off (on by default).
 - **Debounce delay (ms)** — how long to wait after the last `item add` notification before running the export. Default 2000.
 - **Export Now** — same action as the Tools menu entry, for convenience.
@@ -57,10 +58,11 @@ Behind the Preferences pane, settings are stored in Zotero's prefs under the `ex
 | `extensions.bibtex-auto-export.translatorID` | BibTeX translator ID | Zotero translator to use |
 | `extensions.bibtex-auto-export.autoExport` | `true` | Whether to export on item-add |
 | `extensions.bibtex-auto-export.exportDelay` | `2000` | Debounce delay in ms |
+| `extensions.bibtex-auto-export.collectionKey` | *(empty)* | Collection key to filter on; empty means whole library |
 
 ## Known limitations
 
-- The entire user library is exported on every run; per-collection or per-tag filtering is not implemented.
+- Filtering is limited to one collection (with subcollections). Tag-based or saved-search-based filtering is not implemented.
 - Only the first automatic `.backup` file is kept — older versions are overwritten.
 - English only — adding a new locale means dropping a `messages.json` into `chrome/locale/<locale>/` (currently only `en-US` is loaded; selection by `Zotero.locale` is not yet wired up).
 
@@ -81,8 +83,7 @@ manifest.json                       Zotero 7 extension manifest (with icon refer
 bootstrap.js                        Plugin runtime entry; startup/shutdown/onMainWindowLoad/onMainWindowUnload
 chrome/content/helpers.js           Pure helpers — dual-loadable by Zotero and Jest
 chrome/content/i18n.js              Tiny i18n module — dual-loadable by Zotero and Jest
-chrome/content/preferences.xhtml    Preferences pane markup (HTML)
-chrome/content/preferences.js       Preferences pane controller, loaded by Zotero.PreferencePanes.register
+chrome/content/preferences.xhtml    Preferences pane markup (XUL fragment with inline oncommand handlers)
 chrome/content/icon.svg             Plugin icon (Tools menu, Add-ons list, prefs pane header)
 chrome/locale/en-US/messages.json   English UI strings (loaded at startup via fetch)
 package.json                        Dev harness for Jest — not shipped in the XPI
@@ -132,7 +133,7 @@ Both `helpers.js` and `i18n.js` are **dual-loadable**:
 - **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/<file>.js")` at the top of `startup()`. Each file declares its API as a `var` (`BibTeXAutoExportHelpers`, `BibTeXAutoExportI18n`), exposing it as a sandbox global in the bootstrap scope.
 - **In Node/Jest**: a `module.exports` guard at the bottom of each file exports the same object via CommonJS, so `require('../chrome/content/helpers')` and `require('../chrome/content/i18n')` work from test code.
 
-**Important**: both files must stay free of Zotero APIs, DOM, and XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js` or `chrome/content/preferences.js`.
+**Important**: both files must stay free of Zotero APIs, DOM, and XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js`.
 
 Currently covered:
 
@@ -150,7 +151,7 @@ Currently only `en-US` is shipped, and `bootstrap.js` always loads `en-US/messag
 1. Copy `chrome/locale/en-US/messages.json` to `chrome/locale/<locale>/messages.json` and translate the values.
 2. Wire `Zotero.locale` (or `Services.locale.requestedLocale`) into the `fetch()` call in `bootstrap.js`'s `startup()`, with a fallback to `en-US` for unknown locales.
 
-The preferences pane uses the same `BibTeXAutoExportI18n` instance — `data-i18n="<key>"` attributes on elements in `preferences.xhtml` are replaced at load time by `preferences.js`.
+The preferences pane XHTML is currently English-only — i18n is applied via `BibTeXAutoExportI18n.t()` only for the strings rendered from `bootstrap.js` (menu labels, notifications, `"Whole library"` in the collection dropdown). The static XHTML labels (`"Browse…"`, `"Export Now"`, field labels, section headings) still have `data-i18n` attribute markers but no runtime processing — they stay as whatever is written in `preferences.xhtml`. Localizing them would require a load-time hook inside the preferences window, which Zotero 7's `PreferencePanes.register` doesn't expose.
 
 ## Release process
 

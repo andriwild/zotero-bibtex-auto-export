@@ -20,16 +20,26 @@
       </hbox>
 
       <hbox align="center">
-        <label data-i18n="prefs.label.exportFormat" value="Format:"/>
+        <label value="Format:"/>
         <menulist id="bae-export-format"
                   oncommand="Zotero.BibTeXAutoExport.prefsFormatChanged(event)">
-          <menupopup>
-            <menuitem value="bibtex"   data-i18n="prefs.format.bibtex"   label="BibTeX"/>
-            <menuitem value="biblatex" data-i18n="prefs.format.biblatex" label="BibLaTeX"/>
-            <menuitem value="ris"      data-i18n="prefs.format.ris"      label="RIS"/>
-            <menuitem value="csv"      data-i18n="prefs.format.csv"      label="CSV"/>
-            <menuitem value="endnote"  data-i18n="prefs.format.endnote"  label="EndNote XML"/>
-            <menuitem value="json"     data-i18n="prefs.format.json"     label="CSL JSON"/>
+          <menupopup onpopupshowing="Zotero.BibTeXAutoExport.prefsFormatPopupShowing(event)">
+            <menuitem value="bibtex"   label="BibTeX"/>
+            <menuitem value="biblatex" label="BibLaTeX"/>
+            <menuitem value="ris"      label="RIS"/>
+            <menuitem value="csv"      label="CSV"/>
+            <menuitem value="endnote"  label="EndNote XML"/>
+            <menuitem value="json"     label="CSL JSON"/>
+          </menupopup>
+        </menulist>
+      </hbox>
+
+      <hbox align="center">
+        <label value="Source:"/>
+        <menulist id="bae-collection"
+                  oncommand="Zotero.BibTeXAutoExport.prefsCollectionChanged(event)">
+          <menupopup onpopupshowing="Zotero.BibTeXAutoExport.prefsCollectionPopupShowing(event)">
+            <menuitem value="" label="Whole library"/>
           </menupopup>
         </menulist>
       </hbox>
