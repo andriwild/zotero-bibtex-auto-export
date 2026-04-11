@@ -1,7 +1,7 @@
-// Pure helpers for the BibTeX Auto-Export plugin. Loaded both by Zotero (via loadSubScript)
+// Pure helpers for the Zotero Auto-Export plugin. Loaded both by Zotero (via loadSubScript)
 // and by Jest (via require). Must not reference Zotero, DOM, or XPCOM.
 
-var BibTeXAutoExportHelpers = (function() {
+var AutoExportHelpers = (function() {
     function replaceExtension(path, newExtension) {
         if (typeof path !== 'string' || !path) return path;
         var withoutExt = path.replace(/\.[^/.]+$/, "");
@@ -57,6 +57,18 @@ var BibTeXAutoExportHelpers = (function() {
     // — are treated as roots. Nodes without a parentKey are also roots.
     // Cycles are not detected; the input is trusted to be acyclic, which
     // matches Zotero's collection model.
+    // Zotero.Notifier emits "collection-item" events with IDs of the form
+    // "<collectionID>-<itemID>", both being integers. This helper extracts
+    // the collection ID part. Returns null for malformed input.
+    function parseCollectionItemNotifierID(id) {
+        if (typeof id !== 'string' || !id) return null;
+        var dash = id.indexOf('-');
+        if (dash <= 0) return null;
+        var collID = parseInt(id.substring(0, dash), 10);
+        if (isNaN(collID)) return null;
+        return collID;
+    }
+
     function buildCollectionTree(items) {
         if (!Array.isArray(items) || items.length === 0) return [];
 
@@ -101,10 +113,11 @@ var BibTeXAutoExportHelpers = (function() {
         parsePromptIndex: parsePromptIndex,
         countBibEntries: countBibEntries,
         buildExportHeader: buildExportHeader,
-        buildCollectionTree: buildCollectionTree
+        buildCollectionTree: buildCollectionTree,
+        parseCollectionItemNotifierID: parseCollectionItemNotifierID
     };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BibTeXAutoExportHelpers;
+    module.exports = AutoExportHelpers;
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Zotero BibTeX Auto-Export",
-  "version": "0.3.0",
-  "description": "Automatically exports the Zotero library to a bibliography file (BibTeX, BibLaTeX, RIS, CSV, EndNote XML, CSL JSON) whenever items are added.",
+  "name": "Zotero Auto-Export",
+  "version": "0.4.0",
+  "description": "Automatically exports the Zotero library — or a single collection — to a bibliography file (BibTeX, BibLaTeX, RIS, CSV, EndNote XML, CSL JSON) whenever items are added.",
   "author": "andriwild",
   "icons": {
     "48": "chrome/content/icon.svg",
@@ -10,7 +10,7 @@
   },
   "applications": {
     "zotero": {
-      "id": "bibtex-auto-export@andriwild.github.io",
+      "id": "auto-export@andriwild.github.io",
       "update_url": "https://raw.githubusercontent.com/andriwild/zotero-bibtex-auto-export/main/update.json",
       "strict_min_version": "7.0",
       "strict_max_version": "8.0.*"

@@ -1,5 +1,5 @@
 {
-  "menu.mainLabel": "BibTeX Auto-Export",
+  "menu.mainLabel": "Auto-Export",
   "menu.exportNow": "Export Now",
   "menu.openPreferences": "Preferences…",
 
@@ -14,7 +14,7 @@
   "error.noContent": "Export produced no content",
   "error.noContentToSave": "No content to save",
 
-  "prefs.title": "BibTeX Auto-Export",
+  "prefs.title": "Auto-Export",
   "prefs.section.target": "Target",
   "prefs.section.behavior": "Behavior",
   "prefs.section.actions": "Actions",

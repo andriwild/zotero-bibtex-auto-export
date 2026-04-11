@@ -1,16 +1,16 @@
-// Tiny i18n module for the BibTeX Auto-Export plugin.
+// Tiny i18n module for the Zotero Auto-Export plugin.
 // Dual-loadable: Zotero loads via Services.scriptloader.loadSubScript,
 // Jest requires via CommonJS.
 //
 // Usage:
-//   BibTeXAutoExportI18n.init(messagesObject);
-//   BibTeXAutoExportI18n.t("menu.exportNow");
-//   BibTeXAutoExportI18n.t("notify.exportComplete", { count: 5 });
+//   AutoExportI18n.init(messagesObject);
+//   AutoExportI18n.t("menu.exportNow");
+//   AutoExportI18n.t("notify.exportComplete", { count: 5 });
 //
 // The init() call accepts a flat key→string object (parsed messages.json).
 // Placeholders use {name} syntax and are substituted by t().
 
-var BibTeXAutoExportI18n = (function() {
+var AutoExportI18n = (function() {
     var messages = {};
 
     function init(parsedMessages) {
@@ -50,5 +50,5 @@ var BibTeXAutoExportI18n = (function() {
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BibTeXAutoExportI18n;
+    module.exports = AutoExportI18n;
 }

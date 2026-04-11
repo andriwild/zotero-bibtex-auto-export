@@ -2,7 +2,7 @@ var rootURI;
 var prefsPaneID;
 
 if (typeof Zotero !== 'undefined') {
-    Zotero.BibTeXAutoExport = {};
+    Zotero.AutoExport = {};
 }
 
 async function startup(data, reason) {
@@ -18,15 +18,40 @@ async function startup(data, reason) {
         let response = await fetch(rootURI + "chrome/locale/en-US/messages.json");
         messages = await response.json();
     } catch (e) {
-        Services.console.logStringMessage("[BibTeXAutoExport] Failed to load messages: " + e.message);
+        Services.console.logStringMessage("[AutoExport] Failed to load messages: " + e.message);
     }
-    BibTeXAutoExportI18n.init(messages);
+    AutoExportI18n.init(messages);
+
+    // One-time pref migration from the v0.3.x namespace
+    // (`extensions.bibtex-auto-export.*`) to the v0.4.0 namespace
+    // (`extensions.auto-export.*`). Runs every startup but is a no-op once
+    // the new-namespace prefs exist. Old prefs are left in place so a
+    // downgrade still works.
+    let MIGRATION_KEYS = [
+        'exportPath', 'exportFormat', 'translatorID',
+        'autoExport', 'exportDelay', 'collectionKey'
+    ];
+    let migratedAny = false;
+    for (let key of MIGRATION_KEYS) {
+        let newVal = Zotero.Prefs.get('extensions.auto-export.' + key);
+        if (newVal === undefined || newVal === null || newVal === '') {
+            let oldVal = Zotero.Prefs.get('extensions.bibtex-auto-export.' + key);
+            if (oldVal !== undefined && oldVal !== null && oldVal !== '') {
+                Zotero.Prefs.set('extensions.auto-export.' + key, oldVal);
+                migratedAny = true;
+            }
+        }
+    }
+    if (migratedAny) {
+        Services.console.logStringMessage("[AutoExport] Migrated preferences from extensions.bibtex-auto-export.* to extensions.auto-export.*");
+    }
 
     // Seed first-run defaults so the prefs pane bindings show real values
-    // (an unset pref renders as empty / unchecked).
+    // (an unset pref renders as empty / unchecked). Runs after the migration
+    // so it fills only the gaps for fresh installs.
     function setDefaultPref(key, value) {
-        if (Zotero.Prefs.get('extensions.bibtex-auto-export.' + key) === undefined) {
-            Zotero.Prefs.set('extensions.bibtex-auto-export.' + key, value);
+        if (Zotero.Prefs.get('extensions.auto-export.' + key) === undefined) {
+            Zotero.Prefs.set('extensions.auto-export.' + key, value);
         }
     }
     setDefaultPref('exportFormat', 'bibtex');
@@ -35,38 +60,38 @@ async function startup(data, reason) {
     setDefaultPref('exportDelay', 2000);
     setDefaultPref('collectionKey', '');
 
-    Zotero.BibTeXAutoExport = {
-        version: "0.2.0",
+    Zotero.AutoExport = {
+        version: "0.4.0",
         active: true,
 
         // Expose for the prefs pane script
-        helpers: BibTeXAutoExportHelpers,
-        i18n: BibTeXAutoExportI18n,
+        helpers: AutoExportHelpers,
+        i18n: AutoExportI18n,
 
         config: {
-            exportPath: Zotero.Prefs.get('extensions.bibtex-auto-export.exportPath') || "",
-            exportFormat: Zotero.Prefs.get('extensions.bibtex-auto-export.exportFormat') || "bibtex",
-            translatorID: Zotero.Prefs.get('extensions.bibtex-auto-export.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4',
-            autoExport: Zotero.Prefs.get('extensions.bibtex-auto-export.autoExport') !== false,
-            exportDelay: Zotero.Prefs.get('extensions.bibtex-auto-export.exportDelay') || 2000,
-            collectionKey: Zotero.Prefs.get('extensions.bibtex-auto-export.collectionKey') || ""
+            exportPath: Zotero.Prefs.get('extensions.auto-export.exportPath') || "",
+            exportFormat: Zotero.Prefs.get('extensions.auto-export.exportFormat') || "bibtex",
+            translatorID: Zotero.Prefs.get('extensions.auto-export.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4',
+            autoExport: Zotero.Prefs.get('extensions.auto-export.autoExport') !== false,
+            exportDelay: Zotero.Prefs.get('extensions.auto-export.exportDelay') || 2000,
+            collectionKey: Zotero.Prefs.get('extensions.auto-export.collectionKey') || ""
         },
 
         log: function(message) {
-            Zotero.debug("[BibTeXAutoExport] " + message);
-            Services.console.logStringMessage("[BibTeXAutoExport] " + message);
+            Zotero.debug("[AutoExport] " + message);
+            Services.console.logStringMessage("[AutoExport] " + message);
         },
 
         // Re-read prefs from Zotero.Prefs. The prefs pane writes directly
         // to Zotero.Prefs, so the in-memory config can drift; this catches
         // it up before each notifier-driven export.
         refreshConfig: function() {
-            this.config.exportPath = Zotero.Prefs.get('extensions.bibtex-auto-export.exportPath') || "";
-            this.config.exportFormat = Zotero.Prefs.get('extensions.bibtex-auto-export.exportFormat') || "bibtex";
-            this.config.translatorID = Zotero.Prefs.get('extensions.bibtex-auto-export.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4';
-            this.config.autoExport = Zotero.Prefs.get('extensions.bibtex-auto-export.autoExport') !== false;
-            this.config.exportDelay = Zotero.Prefs.get('extensions.bibtex-auto-export.exportDelay') || 2000;
-            this.config.collectionKey = Zotero.Prefs.get('extensions.bibtex-auto-export.collectionKey') || "";
+            this.config.exportPath = Zotero.Prefs.get('extensions.auto-export.exportPath') || "";
+            this.config.exportFormat = Zotero.Prefs.get('extensions.auto-export.exportFormat') || "bibtex";
+            this.config.translatorID = Zotero.Prefs.get('extensions.auto-export.translatorID') || '9cb70025-a888-4a29-a210-93ec52da40d4';
+            this.config.autoExport = Zotero.Prefs.get('extensions.auto-export.autoExport') !== false;
+            this.config.exportDelay = Zotero.Prefs.get('extensions.auto-export.exportDelay') || 2000;
+            this.config.collectionKey = Zotero.Prefs.get('extensions.auto-export.collectionKey') || "";
         },
 
         addMenu: function(window) {
@@ -78,24 +103,24 @@ async function startup(data, reason) {
             this.removeMenu(window);
 
             let sep = doc.createXULElement('menuseparator');
-            sep.id = 'bibtex-auto-export-sep';
+            sep.id = 'auto-export-sep';
             menubar.appendChild(sep);
 
             let menu = doc.createXULElement('menu');
-            menu.id = 'bibtex-auto-export-menu';
-            menu.setAttribute('label', BibTeXAutoExportI18n.t('menu.mainLabel'));
+            menu.id = 'auto-export-menu';
+            menu.setAttribute('label', AutoExportI18n.t('menu.mainLabel'));
 
             let popup = doc.createXULElement('menupopup');
 
             let exportItem = doc.createXULElement('menuitem');
-            exportItem.setAttribute('label', BibTeXAutoExportI18n.t('menu.exportNow'));
+            exportItem.setAttribute('label', AutoExportI18n.t('menu.exportNow'));
             exportItem.addEventListener('command', async function() {
                 await self.manualExport();
             });
             popup.appendChild(exportItem);
 
             let prefsItem = doc.createXULElement('menuitem');
-            prefsItem.setAttribute('label', BibTeXAutoExportI18n.t('menu.openPreferences'));
+            prefsItem.setAttribute('label', AutoExportI18n.t('menu.openPreferences'));
             prefsItem.addEventListener('command', function() {
                 self.openPreferences();
             });
@@ -108,8 +133,8 @@ async function startup(data, reason) {
         removeMenu: function(window) {
             try {
                 let doc = window.document;
-                let menu = doc.getElementById('bibtex-auto-export-menu');
-                let sep = doc.getElementById('bibtex-auto-export-sep');
+                let menu = doc.getElementById('auto-export-menu');
+                let sep = doc.getElementById('auto-export-sep');
                 if (menu) menu.remove();
                 if (sep) sep.remove();
             } catch (e) {
@@ -129,19 +154,128 @@ async function startup(data, reason) {
             }
         },
 
+        // Classic debounce: a single setTimeout-based timer that gets
+        // cancelled and replaced on every new notifier event. Only the
+        // LAST event in a burst actually fires the export. The 500ms
+        // minimum ensures that notifier event bursts (item add +
+        // collection-item add + attachment events for one user action)
+        // get collapsed into one export.
+        _debounceTimer: null,        // numeric timer ID returned by setTimeout
+        _debounceWindow: null,       // window where the timer was created
+        _exportInProgress: false,    // true while exportLibrary is running
+        DEBOUNCE_MIN_MS: 500,
+
         registerExportListener: function() {
             let self = this;
             this.notifierID = Zotero.Notifier.registerObserver({
-                notify: async function(event, type, ids, extraData) {
+                notify: function(event, type, ids, extraData) {
+                    if (event !== 'add') return;
                     self.refreshConfig();
-                    if (type === 'item' && event === 'add' && self.config.autoExport) {
-                        self.log("New items detected: " + ids.length);
-                        await Zotero.Promise.delay(self.config.exportDelay);
-                        await self.exportLibrary();
+                    if (!self.config.autoExport) return;
+
+                    if (!self._shouldExportFor(type, ids)) {
+                        self.log("Auto-export skipped (type=" + type + ", " + ids.length + " id(s)) — not in configured collection subtree");
+                        return;
+                    }
+
+                    self.log("Auto-export trigger (type=" + type + ", " + ids.length + " id(s))");
+                    self._scheduleExport();
+                }
+            }, ['item', 'collection-item']);
+            this.log("Export listener registered (item + collection-item)");
+        },
+
+        // Cancel any pending debounce timer and schedule a new one. Each
+        // call replaces the previous schedule, so a burst of N notifier
+        // events results in exactly ONE export, fired after the debounce
+        // window has elapsed since the LAST event.
+        _scheduleExport: function() {
+            let self = this;
+
+            // Cancel any pending timer
+            if (self._debounceTimer !== null && self._debounceWindow) {
+                try {
+                    self._debounceWindow.clearTimeout(self._debounceTimer);
+                } catch (e) { /* window may have closed */ }
+                self._debounceTimer = null;
+            }
+
+            // Resolve effective delay
+            let configuredDelay = parseInt(self.config.exportDelay, 10);
+            if (isNaN(configuredDelay) || configuredDelay < 0) configuredDelay = 0;
+            let effectiveDelay = Math.max(configuredDelay, self.DEBOUNCE_MIN_MS);
+
+            // Need a window for setTimeout. The notifier fires in response
+            // to user actions in the UI, so a main window is virtually
+            // always present.
+            let win = Zotero.getMainWindow();
+            if (!win) {
+                self.log("No main window for setTimeout — running export immediately");
+                self.exportLibrary();
+                return;
+            }
+
+            self._debounceWindow = win;
+            self._debounceTimer = win.setTimeout(function() {
+                self._debounceTimer = null;
+                self._debounceWindow = null;
+
+                // If a previous export is still running, postpone — don't
+                // run two exports in parallel (file write conflict).
+                if (self._exportInProgress) {
+                    self.log("Export already in progress — re-queuing after current run");
+                    self._scheduleExport();
+                    return;
+                }
+
+                self._exportInProgress = true;
+                self.log("Running auto-export (" + effectiveDelay + "ms after last trigger)");
+                Promise.resolve(self.exportLibrary()).finally(function() {
+                    self._exportInProgress = false;
+                });
+            }, effectiveDelay);
+        },
+
+        // Decide whether a notifier event should trigger an auto-export.
+        //  - No collection filter → fire on 'item' adds only (collection-item
+        //    is redundant, would double-fire).
+        //  - Collection filter set → fire on 'item' adds where the new item
+        //    is already in the configured subtree, OR on 'collection-item'
+        //    adds whose collection is in the subtree (catches drag-into and
+        //    deferred collection assignments from web imports).
+        _shouldExportFor: function(type, ids) {
+            if (!this.config.collectionKey) {
+                return type === 'item';
+            }
+
+            let allowed = this._getAllowedCollectionIDs();
+            if (allowed.size === 0) {
+                // Stale collection key — behave as if no filter is set
+                return type === 'item';
+            }
+
+            if (type === 'item') {
+                let items = Zotero.Items.get(ids);
+                if (!Array.isArray(items)) items = [items];
+                for (let item of items) {
+                    if (!item || typeof item.getCollections !== 'function') continue;
+                    let collIDs = item.getCollections();
+                    for (let cid of collIDs) {
+                        if (allowed.has(cid)) return true;
                     }
                 }
-            }, ['item']);
-            this.log("Export listener registered");
+                return false;
+            }
+
+            if (type === 'collection-item') {
+                for (let id of ids) {
+                    let collID = AutoExportHelpers.parseCollectionItemNotifierID(id);
+                    if (collID !== null && allowed.has(collID)) return true;
+                }
+                return false;
+            }
+
+            return false;
         },
 
         exportLibrary: async function() {
@@ -152,19 +286,28 @@ async function startup(data, reason) {
                 if (!this.config.exportPath) {
                     this.log("No export path configured — opening preferences");
                     this.notifyUser(
-                        BibTeXAutoExportI18n.t('notify.pathRequiredTitle'),
-                        BibTeXAutoExportI18n.t('notify.pathRequiredBody')
+                        AutoExportI18n.t('notify.pathRequiredTitle'),
+                        AutoExportI18n.t('notify.pathRequiredBody')
                     );
                     this.openPreferences();
                     return;
                 }
 
                 let libraryID = Zotero.Libraries.userLibraryID;
-                let items = await this.gatherItems(libraryID);
-                items = items.filter(item => item.isRegularItem());
+                let rawItems = await this.gatherItems(libraryID);
+                let items = rawItems.filter(function(item) {
+                    return item && typeof item.isRegularItem === 'function' && item.isRegularItem();
+                });
+                const itemCount = items.length;
 
-                this.log("Exporting " + items.length + " items with translator: " + this.config.translatorID
+                this.log("Exporting " + itemCount + " of " + (rawItems ? rawItems.length : 0)
+                    + " gathered items, translator: " + this.config.translatorID
                     + (this.config.collectionKey ? " (collection: " + this.config.collectionKey + ")" : " (whole library)"));
+
+                if (itemCount === 0) {
+                    this.log("Nothing to export — file untouched, no notification");
+                    return;
+                }
 
                 const translation = new Zotero.Translate.Export();
                 translation.setItems(items);
@@ -178,31 +321,31 @@ async function startup(data, reason) {
                 await translation.translate();
 
                 if (!exportString) {
-                    throw new Error(BibTeXAutoExportI18n.t('error.noContent'));
+                    throw new Error(AutoExportI18n.t('error.noContent'));
                 }
 
                 await this.saveToFile(exportString);
 
-                this.log("Export successful: " + this.config.exportPath);
+                this.log("Export successful: " + this.config.exportPath + " (" + itemCount + " entries)");
                 this.notifyUser(
-                    BibTeXAutoExportI18n.t('notify.exportCompleteTitle'),
-                    BibTeXAutoExportI18n.t('notify.exportComplete', { count: items.length })
+                    AutoExportI18n.t('notify.exportCompleteTitle'),
+                    AutoExportI18n.t('notify.exportComplete', { count: itemCount })
                 );
             } catch (error) {
                 this.log("Export error: " + error.message);
                 Services.console.logStringMessage("Export error details: " + error.stack);
-                this.notifyUser(BibTeXAutoExportI18n.t('notify.exportFailedTitle'), error.message);
+                this.notifyUser(AutoExportI18n.t('notify.exportFailedTitle'), error.message);
             }
         },
 
         saveToFile: async function(content) {
             if (!content || content.length === 0) {
-                throw new Error(BibTeXAutoExportI18n.t('error.noContentToSave'));
+                throw new Error(AutoExportI18n.t('error.noContentToSave'));
             }
 
             let timestamp = new Date().toISOString();
-            let itemCount = BibTeXAutoExportHelpers.countBibEntries(content);
-            let header = BibTeXAutoExportHelpers.buildExportHeader(this.config.exportFormat, timestamp, itemCount);
+            let itemCount = AutoExportHelpers.countBibEntries(content);
+            let header = AutoExportHelpers.buildExportHeader(this.config.exportFormat, timestamp, itemCount);
             let fullContent = header + content;
 
             let file = Zotero.File.pathToFile(this.config.exportPath);
@@ -238,26 +381,46 @@ async function startup(data, reason) {
             if (!collection) {
                 this.log("Configured collection key not found: " + key + " — falling back to whole library");
                 this.notifyUser(
-                    BibTeXAutoExportI18n.t('notify.collectionMissingTitle'),
-                    BibTeXAutoExportI18n.t('notify.collectionMissingBody')
+                    AutoExportI18n.t('notify.collectionMissingTitle'),
+                    AutoExportI18n.t('notify.collectionMissingBody')
                 );
                 return await Zotero.Items.getAll(libraryID, true);
             }
 
-            let seen = new Set();
-            let result = [];
+            // Collect IDs first (cheap), then load full Item objects via
+            // getAsync. Going via IDs (rather than Item objects from
+            // getChildItems()) guarantees the items are fully data-loaded —
+            // otherwise the BibTeX translator renders empty entries.
+            let idSet = new Set();
             function recurse(coll) {
-                let children = coll.getChildItems();
-                for (let item of children) {
-                    if (!seen.has(item.id)) {
-                        seen.add(item.id);
-                        result.push(item);
-                    }
-                }
+                let ids = coll.getChildItems(true);
+                for (let id of ids) idSet.add(id);
                 let subs = coll.getChildCollections();
-                for (let sub of subs) {
-                    recurse(sub);
-                }
+                for (let sub of subs) recurse(sub);
+            }
+            recurse(collection);
+
+            let allIDs = Array.from(idSet);
+            this.log("gatherItems: " + allIDs.length + " item ID(s) collected from collection '"
+                + collection.name + "' subtree");
+
+            if (allIDs.length === 0) return [];
+            return await Zotero.Items.getAsync(allIDs);
+        },
+
+        // Returns a Set of collection IDs covering the configured collection
+        // and all its descendants. Empty Set if no collection key is set or
+        // the key is stale.
+        _getAllowedCollectionIDs: function() {
+            if (!this.config.collectionKey) return new Set();
+            let libraryID = Zotero.Libraries.userLibraryID;
+            let collection = Zotero.Collections.getByLibraryAndKey(libraryID, this.config.collectionKey);
+            if (!collection) return new Set();
+            let result = new Set();
+            function recurse(coll) {
+                result.add(coll.id);
+                let subs = coll.getChildCollections();
+                for (let sub of subs) recurse(sub);
             }
             recurse(collection);
             return result;
@@ -288,18 +451,18 @@ async function startup(data, reason) {
             let Cc = Components.classes;
             let Ci = Components.interfaces;
 
-            let title = BibTeXAutoExportI18n.t('prefs.filePicker.title');
+            let title = AutoExportI18n.t('prefs.filePicker.title');
             let fp = Cc['@mozilla.org/filepicker;1'].createInstance(Ci.nsIFilePicker);
             fp.init(win, title, Ci.nsIFilePicker.modeSave);
 
-            let format = Zotero.Prefs.get('extensions.bibtex-auto-export.exportFormat') || 'bibtex';
+            let format = Zotero.Prefs.get('extensions.auto-export.exportFormat') || 'bibtex';
             let translators = this._prefsTranslators();
             let ext = (translators[format] || translators.bibtex).extension;
             fp.appendFilter(format + ' files', '*' + ext);
             fp.appendFilter('All Files', '*.*');
             fp.defaultString = 'zotero-export' + ext;
 
-            let currentPath = Zotero.Prefs.get('extensions.bibtex-auto-export.exportPath') || '';
+            let currentPath = Zotero.Prefs.get('extensions.auto-export.exportPath') || '';
             if (currentPath) {
                 try {
                     let currentFile = Zotero.File.pathToFile(currentPath);
@@ -312,7 +475,7 @@ async function startup(data, reason) {
             fp.open(function(result) {
                 if (result === Ci.nsIFilePicker.returnOK || result === Ci.nsIFilePicker.returnReplace) {
                     let picked = fp.file.path;
-                    Zotero.Prefs.set('extensions.bibtex-auto-export.exportPath', picked);
+                    Zotero.Prefs.set('extensions.auto-export.exportPath', picked);
                     let pathInput = doc.getElementById('bae-export-path');
                     if (pathInput) pathInput.value = picked;
                     self.refreshConfig();
@@ -329,14 +492,14 @@ async function startup(data, reason) {
             let translators = this._prefsTranslators();
             let translator = translators[newFormat] || translators.bibtex;
 
-            Zotero.Prefs.set('extensions.bibtex-auto-export.exportFormat', newFormat);
-            Zotero.Prefs.set('extensions.bibtex-auto-export.translatorID', translator.id);
+            Zotero.Prefs.set('extensions.auto-export.exportFormat', newFormat);
+            Zotero.Prefs.set('extensions.auto-export.translatorID', translator.id);
 
             // Update the path extension if a path is set
-            let currentPath = Zotero.Prefs.get('extensions.bibtex-auto-export.exportPath') || '';
+            let currentPath = Zotero.Prefs.get('extensions.auto-export.exportPath') || '';
             if (currentPath) {
-                let newPath = BibTeXAutoExportHelpers.replaceExtension(currentPath, translator.extension);
-                Zotero.Prefs.set('extensions.bibtex-auto-export.exportPath', newPath);
+                let newPath = AutoExportHelpers.replaceExtension(currentPath, translator.extension);
+                Zotero.Prefs.set('extensions.auto-export.exportPath', newPath);
                 let pathInput = doc.getElementById('bae-export-path');
                 if (pathInput) pathInput.value = newPath;
             }
@@ -350,7 +513,7 @@ async function startup(data, reason) {
             let menulist = doc.getElementById('bae-collection');
             if (!menulist) return;
             let key = menulist.value || "";
-            Zotero.Prefs.set('extensions.bibtex-auto-export.collectionKey', key);
+            Zotero.Prefs.set('extensions.auto-export.collectionKey', key);
             this.refreshConfig();
             this.log("Collection filter set to: " + (key || "(whole library)"));
         },
@@ -361,7 +524,7 @@ async function startup(data, reason) {
         prefsFormatPopupShowing: function(event) {
             let menupopup = event.target;
             let menulist = menupopup.parentNode;
-            let current = Zotero.Prefs.get('extensions.bibtex-auto-export.exportFormat') || 'bibtex';
+            let current = Zotero.Prefs.get('extensions.auto-export.exportFormat') || 'bibtex';
             try {
                 menulist.value = current;
             } catch (e) {
@@ -382,7 +545,7 @@ async function startup(data, reason) {
 
             this.log("prefsCollectionPopupShowing: start (library " + libraryID + ")");
 
-            let currentKey = Zotero.Prefs.get('extensions.bibtex-auto-export.collectionKey') || '';
+            let currentKey = Zotero.Prefs.get('extensions.auto-export.collectionKey') || '';
 
             // Clear existing items
             while (menupopup.firstChild) menupopup.removeChild(menupopup.firstChild);
@@ -390,7 +553,7 @@ async function startup(data, reason) {
             // "Whole library" entry
             let firstItem = doc.createXULElement('menuitem');
             firstItem.setAttribute('value', '');
-            firstItem.setAttribute('label', BibTeXAutoExportI18n.t('prefs.collection.wholeLibrary'));
+            firstItem.setAttribute('label', AutoExportI18n.t('prefs.collection.wholeLibrary'));
             menupopup.appendChild(firstItem);
 
             // Fetch all collections — try both signatures for robustness
@@ -428,7 +591,7 @@ async function startup(data, reason) {
                 let sep = doc.createXULElement('menuseparator');
                 menupopup.appendChild(sep);
 
-                let roots = BibTeXAutoExportHelpers.buildCollectionTree(allCollections);
+                let roots = AutoExportHelpers.buildCollectionTree(allCollections);
 
                 let addNode = function(node, depth) {
                     let item = doc.createXULElement('menuitem');
@@ -477,20 +640,20 @@ async function startup(data, reason) {
     // Register the preferences pane (Zotero 7 API).
     try {
         prefsPaneID = await Zotero.PreferencePanes.register({
-            pluginID: 'bibtex-auto-export@andriwild.github.io',
+            pluginID: 'auto-export@andriwild.github.io',
             src: rootURI + 'chrome/content/preferences.xhtml',
-            label: BibTeXAutoExportI18n.t('prefs.title'),
+            label: AutoExportI18n.t('prefs.title'),
             image: rootURI + 'chrome/content/icon.svg'
         });
-        Zotero.BibTeXAutoExport.log("Preferences pane registered: " + prefsPaneID);
+        Zotero.AutoExport.log("Preferences pane registered: " + prefsPaneID);
     } catch (e) {
-        Services.console.logStringMessage("[BibTeXAutoExport] PreferencePanes.register failed: " + e.message);
+        Services.console.logStringMessage("[AutoExport] PreferencePanes.register failed: " + e.message);
     }
 
-    Zotero.BibTeXAutoExport.registerExportListener();
-    Zotero.BibTeXAutoExport.log("Auto-Export Plugin initialized");
-    Zotero.BibTeXAutoExport.log("Export path: " + (Zotero.BibTeXAutoExport.config.exportPath || "(not set)"));
-    Zotero.BibTeXAutoExport.log("Auto-export: " + (Zotero.BibTeXAutoExport.config.autoExport ? "enabled" : "disabled"));
+    Zotero.AutoExport.registerExportListener();
+    Zotero.AutoExport.log("Auto-Export Plugin initialized");
+    Zotero.AutoExport.log("Export path: " + (Zotero.AutoExport.config.exportPath || "(not set)"));
+    Zotero.AutoExport.log("Auto-export: " + (Zotero.AutoExport.config.autoExport ? "enabled" : "disabled"));
 
     // Attach menu to any main windows already open when the plugin starts.
     // Windows opened later are handled by onMainWindowLoad (Zotero 7 hook).
@@ -498,47 +661,58 @@ async function startup(data, reason) {
     for (let win of Zotero.getMainWindows()) {
         if (win.ZoteroPane) {
             try {
-                Zotero.BibTeXAutoExport.addMenu(win);
+                Zotero.AutoExport.addMenu(win);
             } catch (error) {
-                Services.console.logStringMessage("[BibTeXAutoExport] addMenu error: " + error.message);
+                Services.console.logStringMessage("[AutoExport] addMenu error: " + error.message);
             }
         }
     }
 }
 
 function onMainWindowLoad({ window }) {
-    if (Zotero.BibTeXAutoExport) {
+    if (Zotero.AutoExport) {
         try {
-            Zotero.BibTeXAutoExport.addMenu(window);
+            Zotero.AutoExport.addMenu(window);
         } catch (error) {
-            Services.console.logStringMessage("[BibTeXAutoExport] onMainWindowLoad error: " + error.message);
+            Services.console.logStringMessage("[AutoExport] onMainWindowLoad error: " + error.message);
         }
     }
 }
 
 function onMainWindowUnload({ window }) {
-    if (Zotero.BibTeXAutoExport) {
+    if (Zotero.AutoExport) {
         try {
-            Zotero.BibTeXAutoExport.removeMenu(window);
+            Zotero.AutoExport.removeMenu(window);
         } catch (error) {
-            Services.console.logStringMessage("[BibTeXAutoExport] onMainWindowUnload error: " + error.message);
+            Services.console.logStringMessage("[AutoExport] onMainWindowUnload error: " + error.message);
         }
     }
 }
 
 function shutdown(data, reason) {
     try {
-        if (Zotero.BibTeXAutoExport) {
-            if (Zotero.BibTeXAutoExport.notifierID) {
-                Zotero.Notifier.unregisterObserver(Zotero.BibTeXAutoExport.notifierID);
-                Zotero.BibTeXAutoExport.log("Export listener removed");
+        if (Zotero.AutoExport) {
+            // Cancel any pending debounced export
+            if (Zotero.AutoExport._debounceTimer !== null
+                && Zotero.AutoExport._debounceWindow) {
+                try {
+                    Zotero.AutoExport._debounceWindow.clearTimeout(
+                        Zotero.AutoExport._debounceTimer
+                    );
+                } catch (e) { /* window may have closed */ }
+                Zotero.AutoExport._debounceTimer = null;
+                Zotero.AutoExport._debounceWindow = null;
+            }
+            if (Zotero.AutoExport.notifierID) {
+                Zotero.Notifier.unregisterObserver(Zotero.AutoExport.notifierID);
+                Zotero.AutoExport.log("Export listener removed");
             }
             for (let win of Zotero.getMainWindows()) {
-                Zotero.BibTeXAutoExport.removeMenu(win);
+                Zotero.AutoExport.removeMenu(win);
             }
         }
     } catch (error) {
-        Services.console.logStringMessage("[BibTeXAutoExport] Shutdown error: " + error.message);
+        Services.console.logStringMessage("[AutoExport] Shutdown error: " + error.message);
     }
 }
 

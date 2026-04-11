@@ -1,8 +1,24 @@
-# Zotero BibTeX Auto-Export
+# Zotero Auto-Export
 
-A Zotero 7 plugin that automatically exports your library to a bibliography file whenever new items are added — no manual "File → Export" step needed.
+[![Latest release](https://img.shields.io/github/v/release/andriwild/zotero-bibtex-auto-export?label=release)](https://github.com/andriwild/zotero-bibtex-auto-export/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Zotero 7](https://img.shields.io/badge/Zotero-7.0%2B-blueviolet)](https://www.zotero.org/)
+
+A Zotero 7 plugin that automatically exports your library — or a single collection — to a bibliography file whenever items are added. Keeps your `.bib` file in sync with Zotero without ever clicking **File → Export** again.
 
 Supported formats: **BibTeX** (default), **BibLaTeX**, **RIS**, **CSV**, **EndNote XML**, **CSL JSON**.
+
+## Screenshots
+
+> The screenshots below live under `docs/screenshots/`. Drop the captured `.png` files there with the matching filenames and they'll render automatically.
+
+| Tools menu | Preferences pane |
+|---|---|
+| ![Tools menu entry](docs/screenshots/tools-menu.png) | ![Preferences pane](docs/screenshots/preferences-pane.png) |
+
+| Source dropdown (collection picker) | Add-ons list entry |
+|---|---|
+| ![Source dropdown showing collection tree](docs/screenshots/source-dropdown.png) | ![Add-ons list entry](docs/screenshots/addon-list.png) |
 
 ## Who is this for
 
@@ -14,23 +30,23 @@ Anyone who keeps a `.bib` file (or other bibliography file) in sync with their Z
 
 ## Installation
 
-1. Download the latest `zotero-bibtex-auto-export.xpi` from the [Releases page](https://github.com/andriwild/zotero-bibtex-auto-export/releases).
+1. Download the latest `zotero-auto-export.xpi` from the [Releases page](https://github.com/andriwild/zotero-bibtex-auto-export/releases).
 2. In Zotero, open **Tools → Add-ons**.
 3. Click the gear icon in the top-right of the Add-ons window and choose **Install Add-on From File…**.
 4. Select the downloaded `.xpi`. Restart Zotero if prompted.
 
-After installation a new entry **"BibTeX Auto-Export"** appears in the **Tools** menu.
+After installation a new entry **"Auto-Export"** appears in the **Tools** menu.
 
 ## Usage
 
-The **Tools → BibTeX Auto-Export** menu has two quick-access entries:
+The **Tools → Auto-Export** menu has two quick-access entries:
 
 | Menu entry | What it does |
 |---|---|
 | **Export Now** | Run an export immediately. On first use (no target file set), the Preferences pane opens so you can pick one. |
-| **Preferences…** | Open the BibTeX Auto-Export pane in Zotero's Preferences dialog. |
+| **Preferences…** | Open the Auto-Export pane in Zotero's Preferences dialog. |
 
-All configuration lives in **Edit → Preferences → BibTeX Auto-Export**:
+All configuration lives in **Edit → Preferences → Auto-Export**:
 
 - **Export file** — pick the target bibliography file via a file-picker dialog.
 - **Format** — choose BibTeX, BibLaTeX, RIS, CSV, EndNote XML or CSL JSON. The target file's extension is updated automatically when you change format.
@@ -49,16 +65,16 @@ Auto-export waits `exportDelay` milliseconds (default: 2000) after each `item ad
 
 ## Preferences (advanced)
 
-Behind the Preferences pane, settings are stored in Zotero's prefs under the `extensions.bibtex-auto-export.*` namespace. They can also be edited directly via **Edit → Preferences → Advanced → Config Editor**:
+Behind the Preferences pane, settings are stored in Zotero's prefs under the `extensions.auto-export.*` namespace. They can also be edited directly via **Edit → Preferences → Advanced → Config Editor**:
 
 | Preference | Default | Meaning |
 |---|---|---|
-| `extensions.bibtex-auto-export.exportPath` | *(unset)* | Absolute path to the bibliography file |
-| `extensions.bibtex-auto-export.exportFormat` | `bibtex` | Format key |
-| `extensions.bibtex-auto-export.translatorID` | BibTeX translator ID | Zotero translator to use |
-| `extensions.bibtex-auto-export.autoExport` | `true` | Whether to export on item-add |
-| `extensions.bibtex-auto-export.exportDelay` | `2000` | Debounce delay in ms |
-| `extensions.bibtex-auto-export.collectionKey` | *(empty)* | Collection key to filter on; empty means whole library |
+| `extensions.auto-export.exportPath` | *(unset)* | Absolute path to the bibliography file |
+| `extensions.auto-export.exportFormat` | `bibtex` | Format key |
+| `extensions.auto-export.translatorID` | BibTeX translator ID | Zotero translator to use |
+| `extensions.auto-export.autoExport` | `true` | Whether to export on item-add |
+| `extensions.auto-export.exportDelay` | `2000` | Debounce delay in ms |
+| `extensions.auto-export.collectionKey` | *(empty)* | Collection key to filter on; empty means whole library |
 
 ## Known limitations
 
@@ -93,13 +109,13 @@ update.json                         Zotero update manifest served from the repo'
 .github/workflows/release.yml       Tag-triggered build & release workflow
 ```
 
-All runtime logic lives as a single object literal `Zotero.BibTeXAutoExport` in `bootstrap.js`. `startup(data, reason)` does, in order:
+All runtime logic lives as a single object literal `Zotero.AutoExport` in `bootstrap.js`. `startup(data, reason)` does, in order:
 
 1. Loads `helpers.js` and `i18n.js` via `Services.scriptloader.loadSubScript` (using `data.rootURI`, which Zotero 7 provides as a string).
-2. `fetch`es `chrome/locale/en-US/messages.json` and passes it to `BibTeXAutoExportI18n.init()`.
+2. `fetch`es `chrome/locale/en-US/messages.json` and passes it to `AutoExportI18n.init()`.
 3. Seeds first-run defaults in `Zotero.Prefs` (`exportFormat`, `translatorID`, `autoExport`, `exportDelay`, `collectionKey`) so XUL `preference="..."` bindings show real values instead of empty state.
-4. Builds the `Zotero.BibTeXAutoExport` object with config mirrored from `Zotero.Prefs`, plus all the prefs-pane handlers (`prefsBrowseExportPath`, `prefsFormatChanged`, `prefsCollectionChanged`, `prefsExportNow`, `prefsFormatPopupShowing`, `prefsCollectionPopupShowing`).
-5. Registers the preferences pane via `Zotero.PreferencePanes.register({ pluginID, src, label, image })`. **Does not pass a `scripts:` field** — Zotero 7 silently no-ops it. All pane logic runs inside the bootstrap scope via inline XUL `oncommand`/`onpopupshowing` handlers that call `Zotero.BibTeXAutoExport.prefs*` methods. The returned pane ID is stored in a closure variable so the menu's "Preferences…" item can open it via `Zotero.Utilities.Internal.openPreferences(prefsPaneID)`.
+4. Builds the `Zotero.AutoExport` object with config mirrored from `Zotero.Prefs`, plus all the prefs-pane handlers (`prefsBrowseExportPath`, `prefsFormatChanged`, `prefsCollectionChanged`, `prefsExportNow`, `prefsFormatPopupShowing`, `prefsCollectionPopupShowing`).
+5. Registers the preferences pane via `Zotero.PreferencePanes.register({ pluginID, src, label, image })`. **Does not pass a `scripts:` field** — Zotero 7 silently no-ops it. All pane logic runs inside the bootstrap scope via inline XUL `oncommand`/`onpopupshowing` handlers that call `Zotero.AutoExport.prefs*` methods. The returned pane ID is stored in a closure variable so the menu's "Preferences…" item can open it via `Zotero.Utilities.Internal.openPreferences(prefsPaneID)`.
 6. Registers the notifier observer.
 7. `await`s `Zotero.uiReadyPromise` and installs the Tools menu (Export Now + Preferences…) on every already-open main window.
 
@@ -112,12 +128,12 @@ The notifier handler always calls `refreshConfig()` before reading from `this.co
 There is no build system. The XPI is just a zip of the runtime files:
 
 ```sh
-zip -r zotero-bibtex-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
+zip -r zotero-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
 ```
 
 Important: `package.json`, `node_modules/`, `test/`, `update.json` and `.github/` must not end up inside the XPI — the command above only includes the four paths explicitly, so this is already taken care of.
 
-For debugging, use **Help → Debug Output Logging** in Zotero; the plugin's log lines are prefixed with `[BibTeXAutoExport]`.
+For debugging, use **Help → Debug Output Logging** in Zotero; the plugin's log lines are prefixed with `[AutoExport]`.
 
 ## Tests
 
@@ -131,7 +147,7 @@ npx jest test/helpers.test.js -t replaceExtension     # run a single describe/te
 
 Both `helpers.js` and `i18n.js` are **dual-loadable**:
 
-- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/<file>.js")` at the top of `startup()`. Each file declares its API as a `var` (`BibTeXAutoExportHelpers`, `BibTeXAutoExportI18n`), exposing it as a sandbox global in the bootstrap scope.
+- **In Zotero**: `bootstrap.js` calls `Services.scriptloader.loadSubScript(rootURI + "chrome/content/<file>.js")` at the top of `startup()`. Each file declares its API as a `var` (`AutoExportHelpers`, `AutoExportI18n`), exposing it as a sandbox global in the bootstrap scope.
 - **In Node/Jest**: a `module.exports` guard at the bottom of each file exports the same object via CommonJS, so `require('../chrome/content/helpers')` and `require('../chrome/content/i18n')` work from test code.
 
 **Important**: both files must stay free of Zotero APIs, DOM, and XPCOM — otherwise the Node-side tests break. Anything that needs Zotero access stays in `bootstrap.js`.
@@ -143,14 +159,14 @@ Currently covered:
 
 ## Localization
 
-UI strings live in `chrome/locale/<locale>/messages.json` as a flat key→template object. Placeholders use `{name}` syntax (substituted by `BibTeXAutoExportI18n.t(key, params)`).
+UI strings live in `chrome/locale/<locale>/messages.json` as a flat key→template object. Placeholders use `{name}` syntax (substituted by `AutoExportI18n.t(key, params)`).
 
 Currently only `en-US` is shipped, and `bootstrap.js` always loads `en-US/messages.json` regardless of `Zotero.locale`. To add a new locale:
 
 1. Copy `chrome/locale/en-US/messages.json` to `chrome/locale/<locale>/messages.json` and translate the values.
 2. Wire `Zotero.locale` (or `Services.locale.requestedLocale`) into the `fetch()` call in `bootstrap.js`'s `startup()`, with a fallback to `en-US` for unknown locales.
 
-The preferences pane XHTML is currently English-only — i18n is applied via `BibTeXAutoExportI18n.t()` only for the strings rendered from `bootstrap.js` (menu labels, notifications, `"Whole library"` in the collection dropdown). The static XHTML labels (`"Browse…"`, `"Export Now"`, field labels, section headings) still have `data-i18n` attribute markers but no runtime processing — they stay as whatever is written in `preferences.xhtml`. Localizing them would require a load-time hook inside the preferences window, which Zotero 7's `PreferencePanes.register` doesn't expose.
+The preferences pane XHTML is currently English-only — i18n is applied via `AutoExportI18n.t()` only for the strings rendered from `bootstrap.js` (menu labels, notifications, `"Whole library"` in the collection dropdown). The static XHTML labels (`"Browse…"`, `"Export Now"`, field labels, section headings) still have `data-i18n` attribute markers but no runtime processing — they stay as whatever is written in `preferences.xhtml`. Localizing them would require a load-time hook inside the preferences window, which Zotero 7's `PreferencePanes.register` doesn't expose.
 
 ## Release process
 

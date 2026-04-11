@@ -227,3 +227,36 @@ describe('buildCollectionTree', () => {
         expect(roots[2].item.name).toBe('Beta');
     });
 });
+
+describe('parseCollectionItemNotifierID', () => {
+    test('extracts the collection ID from a well-formed string', () => {
+        expect(H.parseCollectionItemNotifierID('5-100')).toBe(5);
+        expect(H.parseCollectionItemNotifierID('12-345')).toBe(12);
+    });
+
+    test('handles single-digit IDs', () => {
+        expect(H.parseCollectionItemNotifierID('1-2')).toBe(1);
+    });
+
+    test('returns null for empty string', () => {
+        expect(H.parseCollectionItemNotifierID('')).toBeNull();
+    });
+
+    test('returns null for non-string input', () => {
+        expect(H.parseCollectionItemNotifierID(null)).toBeNull();
+        expect(H.parseCollectionItemNotifierID(undefined)).toBeNull();
+        expect(H.parseCollectionItemNotifierID(42)).toBeNull();
+    });
+
+    test('returns null for missing dash', () => {
+        expect(H.parseCollectionItemNotifierID('12345')).toBeNull();
+    });
+
+    test('returns null for missing collection ID before dash', () => {
+        expect(H.parseCollectionItemNotifierID('-100')).toBeNull();
+    });
+
+    test('returns null for non-numeric collection ID', () => {
+        expect(H.parseCollectionItemNotifierID('abc-100')).toBeNull();
+    });
+});

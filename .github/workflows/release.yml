@@ -24,10 +24,10 @@ jobs:
           fi
 
       - name: Build XPI
-        run: zip -r zotero-bibtex-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
+        run: zip -r zotero-auto-export.xpi manifest.json bootstrap.js chrome/ LICENSE
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: zotero-bibtex-auto-export.xpi
+          files: zotero-auto-export.xpi
           generate_release_notes: true

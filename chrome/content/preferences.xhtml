@@ -1,4 +1,4 @@
-<vbox id="zotero-prefpane-bibtex-auto-export"
+<vbox id="zotero-prefpane-auto-export"
       xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml">
 
@@ -10,20 +10,20 @@
         <label data-i18n="prefs.label.exportPath" value="Export file:"/>
         <html:input type="text"
                     id="bae-export-path"
-                    preference="extensions.bibtex-auto-export.exportPath"
+                    preference="extensions.auto-export.exportPath"
                     readonly="readonly"
                     style="flex: 1; min-width: 240px;"/>
         <button id="bae-browse"
                 data-i18n="prefs.button.browse"
                 label="Browse…"
-                oncommand="Zotero.BibTeXAutoExport.prefsBrowseExportPath(event)"/>
+                oncommand="Zotero.AutoExport.prefsBrowseExportPath(event)"/>
       </hbox>
 
       <hbox align="center">
         <label value="Format:"/>
         <menulist id="bae-export-format"
-                  oncommand="Zotero.BibTeXAutoExport.prefsFormatChanged(event)">
-          <menupopup onpopupshowing="Zotero.BibTeXAutoExport.prefsFormatPopupShowing(event)">
+                  oncommand="Zotero.AutoExport.prefsFormatChanged(event)">
+          <menupopup onpopupshowing="Zotero.AutoExport.prefsFormatPopupShowing(event)">
             <menuitem value="bibtex"   label="BibTeX"/>
             <menuitem value="biblatex" label="BibLaTeX"/>
             <menuitem value="ris"      label="RIS"/>
@@ -37,8 +37,8 @@
       <hbox align="center">
         <label value="Source:"/>
         <menulist id="bae-collection"
-                  oncommand="Zotero.BibTeXAutoExport.prefsCollectionChanged(event)">
-          <menupopup onpopupshowing="Zotero.BibTeXAutoExport.prefsCollectionPopupShowing(event)">
+                  oncommand="Zotero.AutoExport.prefsCollectionChanged(event)">
+          <menupopup onpopupshowing="Zotero.AutoExport.prefsCollectionPopupShowing(event)">
             <menuitem value="" label="Whole library"/>
           </menupopup>
         </menulist>
@@ -50,7 +50,7 @@
     <label><html:h2 data-i18n="prefs.section.behavior">Behavior</html:h2></label>
 
     <checkbox id="bae-auto-export"
-              preference="extensions.bibtex-auto-export.autoExport"
+              preference="extensions.auto-export.autoExport"
               data-i18n="prefs.label.autoExport"
               label="Export automatically when items are added"/>
 
@@ -62,7 +62,7 @@
       <label data-i18n="prefs.label.exportDelay" value="Debounce delay (ms):"/>
       <html:input type="number"
                   id="bae-export-delay"
-                  preference="extensions.bibtex-auto-export.exportDelay"
+                  preference="extensions.auto-export.exportDelay"
                   min="0"
                   step="100"
                   style="width: 100px;"/>
@@ -75,7 +75,7 @@
       <button id="bae-export-now"
               data-i18n="prefs.button.exportNow"
               label="Export Now"
-              oncommand="Zotero.BibTeXAutoExport.prefsExportNow(event)"/>
+              oncommand="Zotero.AutoExport.prefsExportNow(event)"/>
     </hbox>
   </groupbox>
 

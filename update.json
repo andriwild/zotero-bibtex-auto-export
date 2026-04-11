@@ -1,5 +1,19 @@
 {
   "addons": {
+    "auto-export@andriwild.github.io": {
+      "updates": [
+        {
+          "version": "0.4.0",
+          "update_link": "https://github.com/andriwild/zotero-bibtex-auto-export/releases/download/v0.4.0/zotero-auto-export.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "7.0",
+              "strict_max_version": "8.0.*"
+            }
+          }
+        }
+      ]
+    },
     "bibtex-auto-export@andriwild.github.io": {
       "updates": [
         {
